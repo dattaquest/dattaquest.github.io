@@ -93,10 +93,6 @@
             width: 210px;
         }
 
-        .puta {
-            top: 15px;
-        }
-
         table {
             margin: auto;
             display: block;
@@ -191,6 +187,62 @@
 
         #dom {
             height: 400px;
+        }
+
+        /* Shamir */
+
+        /* INICIO marquesina */
+
+        .contenedor {
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            display: flex;
+            align-items: center;
+        }
+
+        .contenedor-caja {
+            width: 100%;
+            height: 700px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .contenido {
+            position: absolute;
+            opacity: 0;
+            transition: 0.7s;
+        }
+
+        .contenido.activo {
+            opacity: 1;
+        }
+
+        button {
+            background-color: rgb(34, 37, 40);
+            color: white;
+            border: none;
+            border-radius:100%;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: rgb(64, 65, 66);
+        }
+
+        button:valid {
+            outline: none;
+        }
+
+        /* FIN marquesina */
+
+        /* Para arreglar el espacio superior extra de los nav-item */
+        .nav-item {
+            padding-top: 10px;
         }
     </style>
 
@@ -293,7 +345,6 @@
             </div>
 
         </nav>
-
     </section>
 
 
@@ -307,9 +358,10 @@
         </div>
 
         <div class="container">
-            <div class="text-content" id="dorado1">
-                <div class="media-container-row ">
-                    <div class="col-md-12 mb-4">
+            <div class="contenedor text-content" id="dorado1">
+                <button id="prevBtn">◀</button>
+                <div class="contenedor-caja media-container-row ">
+                    <div class="contenido col-md-12 mb-4">
                         <h3 class="mb-4 mbr-fonts-style mbr-section-title mbr-bold display-1">AVERIGUAR TITULAR & ORIGEN
                             DE MÓVIL</h3>
                         <h3 class="mbr-section-subtitle mbr-fonts-style mb-4 mbr-bold display-5">Titularidad de número
@@ -323,7 +375,52 @@
                                 href="./Identificar Titular de Celular _ Claro Personal Movistar.html">SOLICITAR
                                 INFORME</a></div>
                     </div>
+                    <div class="contenido col-md-12 mb-4">
+                        <h3 class="mb-4 mbr-fonts-style mbr-section-title mbr-bold display-1">AVERIGUACIÓN POR NÚMERO
+                            TELEFÓNICO</h3>
+                        <h3 class="mbr-section-subtitle mbr-fonts-style mb-4 mbr-bold display-5">Titularidad de número
+                            de celular de Argentina: $ 4999</h3>
+                        <p class="mb-4 mbr-fonts-style display-7">A partir del número de celular podés averiguar nombre,
+                            DNI y domicilio del titular de la línea en 24 hs. </p>
+                        <p class="mb-4 mbr-fonts-style display-7"><strong>Valido para TODO el territorio
+                                ARGENTINO.</strong></p>
+                        <div class="mbr-section-btn"><a onmousedown="sonido.play()"
+                                class="btn btn-md btn-black display-4"
+                                href="./Identificar Titular de Celular _ Claro Personal Movistar.html">SOLICITAR
+                                INFORME</a></div>
+
+                    </div>
+                    <div class="contenido col-md-12 mb-4">
+                        <h3 class="mb-4 mbr-fonts-style mbr-section-title mbr-bold display-1">IDENTIFICACIÓN POR
+                            PATENTES</h3>
+                        <h3 class="mbr-section-subtitle mbr-fonts-style mb-4 mbr-bold display-5">Titularidad de número
+                            de celular de Argentina: $ 4999</h3>
+                        <p class="mb-4 mbr-fonts-style display-7">A partir del número de celular podés averiguar nombre,
+                            DNI y domicilio del titular de la línea en 24 hs. </p>
+                        <p class="mb-4 mbr-fonts-style display-7"><strong>Valido para TODO el territorio
+                                ARGENTINO.</strong></p>
+                        <div class="mbr-section-btn"><a onmousedown="sonido.play()"
+                                class="btn btn-md btn-black display-4"
+                                href="./Identificar Titular de Celular _ Claro Personal Movistar.html">SOLICITAR
+                                INFORME</a></div>
+                    </div>
+                    <div class="contenido col-md-12 mb-4">
+                        <h3 class="mb-4 mbr-fonts-style mbr-section-title mbr-bold display-1">DOMINIO PROPIEDAD INMUEBLE
+                            (PRÓXIMAMENTE)</h3>
+                        <h3 class="mbr-section-subtitle mbr-fonts-style mb-4 mbr-bold display-5">Titularidad de número
+                            de celular de Argentina: $ 4999</h3>
+                        <p class="mb-4 mbr-fonts-style display-7">A partir del número de celular podés averiguar nombre,
+                            DNI y domicilio del titular de la línea en 24 hs. </p>
+                        <p class="mb-4 mbr-fonts-style display-7"><strong>Valido para TODO el territorio
+                                ARGENTINO.</strong></p>
+                        <div class="mbr-section-btn"><a onmousedown="sonido.play()"
+                                class="btn btn-md btn-black display-4"
+                                href="./Identificar Titular de Celular _ Claro Personal Movistar.html">SOLICITAR
+                                INFORME</a></div>
+
+                    </div>
                 </div>
+                <button id="nextBtn">▶</button>
             </div>
         </div>
         <div id="jarallax-container-0"
@@ -495,525 +592,107 @@
 
     <section id="servicio 1">
 
-
-
-
-
-        <!-- 
-
-
-    <section class="features1 cid-sBhMooccHA" id="dorado2">
-        
-
-        
-        <div class="container" >
-            <div class="row">
-                <div class="col-12 col-lg-9">
-                    <h3 class="mbr-section-title mbr-fonts-style align-center mb-0 display-2"><strong>Titularidad de líneas celulares</strong></h3>
-                    
-                </div>
-            </div>
-            <div class="row">
-                <div class="card col-12 col-md-6 col-lg-3">
-                    <div class="card-wrapper">
-                        <div class="card-box align-center">
-                            <div class="iconfont-wrapper">
-                                    <img id="contact-form" src="./notepad.png">
-                            </div>
-                            <h5 class="card-title mbr-fonts-style display-7"><strong>Qué datos incluye el informe de Titular de Número Celular</strong></h5>
-                            <p class="card-text mbr-fonts-style display-7">Nombre o Razón Social, Apellido, DNI /  CUIL / CUIT, Operadora Telefónica. A veces fecha de nacimiento.&nbsp;</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="card col-12 col-md-6 col-lg-3">
-                    <div class="card-wrapper">
-                        <div class="card-box align-center">
-                            <div class="iconfont-wrapper">
-                                <img id="icon-font" src="./infor.png">
-                            </div>
-                            <h5 class="card-title mbr-fonts-style display-7"><strong>¿Es válido para todas las compañías?</strong></h5>
-                            <p class="card-text mbr-fonts-style display-7">El servicio sólo es válido para líneas Claro, Personal, Movistar y Tuenti. No es válido para números fijos.&nbsp;</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="card col-12 col-md-6 col-lg-3">
-                    <div class="card-wrapper">
-                        <div class="card-box align-center">
-                            <div class="iconfont-wrapper">
-                                <img id="sad" src="./triste.png">
-                            </div>
-                            <h5 class="card-title mbr-fonts-style display-7"><strong>¿Qué sucede con las líneas prepagas?</strong></h5>
-                            <p class="card-text mbr-fonts-style display-7">Las líneas prepagas pueden estar registradas con datos falsos, inexistentes o genéricos.</p>
-                        </div>
-                    </div>
-                </div>
-                
-            </div>
-        </div>
-    </section>
--->
-        <section class="features1 cid-sBhO2NTJ2E" id="features1-4">
-
+        <section class="features6 cid-sBFdoMan1G" id="features7-m">0
 
 
             <div class="container">
-                <div class="row">
-                    <div class="col-12 col-lg-9">
-                        <h3 class="mbr-section-title mbr-fonts-style align-center mb-0 display-2">
-                            <strong>Cómo gestionar los trámites</strong>
-                        </h3>
-
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="card col-12 col-md-6 col-lg-3">
-                        <div class="card-wrapper">
-                            <div class="card-box align-center">
-                                <div class="iconfont-wrapper">
-                                    <img id="mano" src="./señalar.png">
-                                </div>
-                                <h5 class="card-title mbr-fonts-style display-7"><strong>LO PEDIS EN LINEA</strong></h5>
-                                <p class="card-text mbr-fonts-style display-7">Completá el formulario en cuestión,
-                                    indicando el número telefónico o de patente que querés identificar y tu e-mail.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card col-12 col-md-6 col-lg-3">
-                        <div class="card-wrapper">
-                            <div class="card-box align-center">
-                                <div class="iconfont-wrapper">
-                                    <img id="cash" src="./pesos.png">
-                                </div>
-                                <h5 class="card-title mbr-fonts-style display-7"><strong>ABONAS EL SERVICIO</strong>
+                <div class="card-wrapper">
+                    <div class="row align-items-center">
+                        <div class="col-12 col-lg">
+                            <div class="text-box">
+                                <h5 class="mbr-title mbr-fonts-style display-5">
+                                    <strong>Métodos de Pago</strong>
                                 </h5>
-                                <p class="card-text mbr-fonts-style display-7">Aboná el servicio por
-                                    <strong>transferencia</strong>, <strong>depósito bancario</strong> o
-                                    <strong>Mercadopago</strong>.
+                                <p class="mbr-text mbr-fonts-style display-7">Para solicitar el Informe de
+                                    <strong>Averiguación de Titular de Número de Celular</strong> no necesita tarjeta de
+                                    crédito. Aceptamos la acreditación del pago mediante: Transferencias bancarias,
+                                    Depósitos en cuenta, Transferencias desde cuentas digitales, etc. Aprovechá el
+                                    descuento
+                                    que estamos haciendo por <strong>tiempo limitado</strong>.&nbsp;&nbsp;
                                 </p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card col-12 col-md-6 col-lg-3">
-                        <div class="card-wrapper">
-                            <div class="card-box align-center">
-                                <div class="iconfont-wrapper">
-                                    <img id="descargar" src="./descargar.png">
+                                <div class="cost">
+                                    <span class="currentcost mbr-fonts-style pr-2 display-2">$4999</span>
+                                    <span class="oldcost mbr-fonts-style display-2">$5500</span>
                                 </div>
-                                <h5 class="card-title mbr-fonts-style display-7"><strong>RECIBIS EL INFORME</strong>
-                                </h5>
-                                <p class="card-text mbr-fonts-style display-7">Acreditado el pago, recibirás el informe
-                                    en tu e-mail en un plazo de 24 hs hábiles.</p>
+                                <div class="mbr-section-btn pt-3"><a onmousedown="sonido.play()"
+                                        href="./Identificar Titular de Celular _ Claro Personal Movistar.html"
+                                        class="btn btn-primary display-4">SOLICITAR INFORME</a></div>
                             </div>
                         </div>
-                    </div>
+                        <div class="col-12 col-lg-6">
+                            <div class="image-wrapper">
+                                <img src="./index_files/metodos-de-pago-651x632.jpg" alt="Metodos de Pago">
+                            </div>
+                        </div>
 
+                    </div>
                 </div>
             </div>
         </section>
 
-        <section class="content10 cid-sBmYm51hCP" id="dorado3">
+        <section class="mbr-section form2 agencym4_form2 cid-sBrSN7LISM" id="dorado5">
 
             <div class="container">
-                <div class="row justify-content-center">
-                    <div class="col-12 col-md">
+                <div class="media-container-row">
+                    <div class="col-md-6 col-lg-6 block-content">
+                        <div class="form-block">
+                            <div class="bg"></div>
+                            <div class="form-wrap">
+                                <!--Formbuilder Form-->
+                                <form action="./show_data.html" method="GET"
+                                    data-rcpha_sitekey="6LfiEM8UAAAAAEdvH6USbvxlEZ-_ogWmyrElUmcc"
+                                    data-rcpha_secretkey="6LfiEM8UAAAAACqWsKo7xiMkqhVm6Xri4-tG0-z1"
+                                    class="mbr-form form-with-styler" data-rcpha="true" data-rcpha_label="true">
+                                    <div class="form-row">
 
-                        <h6 class="mbr-section-subtitle mbr-fonts-style mb-4 display-5">
-                            Quiénes solicitan averiguar el titular de un número de celular</h6>
-                    </div>
-                    <div class="col-md-12 col-lg-6">
-                        <p class="mbr-text mbr-fonts-style display-7">Particulares, Empresas de Cobranzas, Detectives
-                            Privados, Periodistas, Estudios Jurídicos, Inmobiliarias, Consultoras de Recursos Humanos,
-                            Concesionarias de Autos, Comercios, Padres y Madres, Víctimas de Acoso Telefónico,
-                            etc.&nbsp;</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-        <!--
-    <section class="info3 cid-sBncI261c7"  id="dorado4">
-
-        <div class="container">
-            <div class="row justify-content-center" >
-                <div class="card col-12 col-lg-10">
-                    <div class="card-wrapper">
-                        <div class="card-box align-center">
-                            <h4 class="card-title mbr-fonts-style align-center mb-4 display-2">
-                                <strong>Identificar Usuario de Nro. de Celular</strong></h4>
-                            <p class="mbr-text mbr-fonts-style mb-4 display-7"><strong>
-                                 ¿ACOSO TELEFONICO? ¿AMENAZAS? ¿MOLESTAN POR MENSAJES? ¿LLAMADAS MOLESTAS? ¿LLAMAN Y CORTAN? ¡NO TE QUEDES CON LA DUDA!</strong>&nbsp;</p>
-                            <div class="mbr-section-btn mt-3"><a onmousedown="sonido.play()" class="btn btn-black display-4" href="./Identificar Titular de Celular _ Claro Personal Movistar.html">Solicitar Informe</a></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
--->
-    </section>
-
-    <!---
-
-<section id="servicio 2">
-    <section class="content4 cid-sBnfntoNnF" id="content4-f">
-            
-            
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="title col-md-12 col-lg-10">
-                    <h3 class="mbr-section-title mbr-fonts-style align-center mb-4 display-2">
-                        <strong>¿Cómo averiguo número telefónico?</strong></h3>
-                   <h4 class="mbr-section-subtitle align-center mbr-fonts-style mb-4 display-5">
-                        Cómo saber de quién es un número de teléfono fijo</h4> --
-                    
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section class="content5 cid-sBn8HvyvI5" id="content5-7">
-        
-        <div class="container">
-            <div class="row justify-content-center" >
-                <div class="col-md-12 col-lg-10">
-                    
-                    
-                    <p class="mbr-text mbr-fonts-style display-7">En base a nuestros informes podrás <strong>averiguar a quién pertenece un número telefónico fijo de Argentina</strong>&nbsp;en 24 horas hábiles y de manera totalmente segura y confidencial. Ahora podés <strong>buscar nombre y dirección a partir del número de teléfono</strong> como único dato.<br><br>El informe de <strong>Titularidad de Número Telefónico</strong> es útil en casos de búsquedas de personas, amenazas telefónicas, llamadas y mensajes molestos, estafas, control de hijos, verificación de datos personales, etc.<br><br>Realizamos nuestros informes a través de métodos de investigación privada, de manera segura y legal. Este <strong>servicio es válido únicamente para Argentina y tiene costo</strong>.&nbsp;<strong>NO ES GRATUITO</strong>.&nbsp;</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section class="features1 cid-sBhMooccHA" id="dorado2">
-        
-
-        
-        <div class="container" >
-            <div class="row">
-                <div class="col-12 col-lg-9">
-                    <h3 class="mbr-section-title mbr-fonts-style align-center mb-0 display-2"><strong>Titularidad de líneas telefónicas</strong></h3>
-                    
-                </div>
-            </div>
-            <div class="row">
-                <div class="card col-12 col-md-6 col-lg-3">
-                    <div class="card-wrapper">
-                        <div class="card-box align-center">
-                            <div class="iconfont-wrapper">
-                                    <img id="contact-form" src="./notepad.png">
-                            </div>
-                            <h5 class="card-title mbr-fonts-style display-7"><strong>Qué datos incluye el informe de Titular de Servicio Telefónico</strong></h5>
-                            <p class="card-text mbr-fonts-style display-7">Nombre o Razón Social, Apellido, DNI /  CUIL / CUIT, Operadora Telefónica. A veces fecha de nacimiento.&nbsp;</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="card col-12 col-md-6 col-lg-3">
-                    <div class="card-wrapper">
-                        <div class="card-box align-center">
-                            <div class="iconfont-wrapper">
-                                <img id="icon-font" src="./infor.png">
-                            </div>
-                            <h5 class="card-title mbr-fonts-style display-7"><strong>¿Es válido para todas las compañías?</strong></h5>
-                            <p class="card-text mbr-fonts-style display-7">El servicio sólo es válido para números de Telefónica y Telecom.&nbsp;</p>
-                        </div>
-                    </div>
-                </div>
-
-                
-            </div>
-        </div>
-    </section>
-
-    <section class="features1 cid-sBhO2NTJ2E" id="features1-4">
-        
-
-        
-        <div class="container">
-            <div class="row">
-                <div class="col-12 col-lg-9">
-                    <h3 class="mbr-section-title mbr-fonts-style align-center mb-0 display-2">
-                        <strong>Cómo Averiguar el Titular de un número fijo</strong></h3>
-                    
-                </div>
-            </div>
-            <div class="row">
-                <div class="card col-12 col-md-6 col-lg-3">
-                    <div class="card-wrapper">
-                        <div class="card-box align-center">
-                            <div class="iconfont-wrapper">
-                                <img id="mano" src="./señalar.png">
-                            </div>
-                            <h5 class="card-title mbr-fonts-style display-7"><strong>LO PEDIS EN LINEA</strong></h5>
-                            <p class="card-text mbr-fonts-style display-7">Completá el formulario indicando el número que querés identificar y tu e-mail.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="card col-12 col-md-6 col-lg-3">
-                    <div class="card-wrapper">
-                        <div class="card-box align-center">
-                            <div class="iconfont-wrapper">
-                                <img id="cash" src="./pesos.png">
-                            </div>
-                            <h5 class="card-title mbr-fonts-style display-7"><strong>ABONAS EL SERVICIO</strong></h5>
-                            <p class="card-text mbr-fonts-style display-7">Aboná el servicio por Transferencia, Depósito Bancario o Mercadopago.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="card col-12 col-md-6 col-lg-3">
-                    <div class="card-wrapper">
-                        <div class="card-box align-center">
-                            <div class="iconfont-wrapper">
-                                <img id="descargar" src="./descargar.png">
-                            </div>
-                            <h5 class="card-title mbr-fonts-style display-7"><strong>RECIBIS EL INFORME</strong></h5>
-                            <p class="card-text mbr-fonts-style display-7">Acreditado el pago, recibirás el informe en tu e-mail en un plazo de 24 hs hábiles.</p>
-                        </div>
-                    </div>
-                </div>
-                
-            </div>
-        </div>
-
-
-    </section>
-    --
-</section>
-
-
-<section id="servicio 3">
-    <section class="content4 cid-sBnfntoNnF" id="content4-f">
-            
-            
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="title col-md-12 col-lg-10">
-                    <h3 class="mbr-section-title mbr-fonts-style align-center mb-4 display-2">
-                        <strong>Saber a quién pertenece una patente</strong></h3>
-                    <h4 class="mbr-section-subtitle align-center mbr-fonts-style mb-4 display-5">
-                        Cómo identificar a alguien por la patente de un vehículo</h4>
-                    
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section class="content5 cid-sBn8HvyvI5" id="content5-7">
-        
-        <div class="container">
-            <div class="row justify-content-center" >
-                <div class="col-md-12 col-lg-10">
-                    
-                    
-                    <p class="mbr-text mbr-fonts-style display-7">A partir de nuestros informes vas a poder <strong>averiguar a quién pertenece un número de patente de Argentina</strong>&nbsp;en 24 horas hábiles y de manera totalmente segura y confidencial. Ahora podés <strong>buscar nombre y dirección a partir del número de patente de un automotor</strong> como único dato.<br><br>El informe de <strong>Patentes</strong> es útil en casos de infracción de normas de tránsito, robos, extravío de vehículos, accidentes, etc.<br><br>Realizamos nuestros informes a través de métodos de investigación privada, de manera segura y legal. Este <strong>servicio es válido únicamente para Argentina y tiene costo</strong>.&nbsp;<strong>NO ES GRATUITO</strong>.&nbsp;</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section class="features1 cid-sBhMooccHA" id="dorado2">
-        
-
-        
-        <div class="container" >
-            <div class="row">
-                <div class="col-12 col-lg-9">
-                    <h3 class="mbr-section-title mbr-fonts-style align-center mb-0 display-2"><strong>Informe de Patentes</strong></h3>
-                    
-                </div>
-            </div>
-            <div class="row">
-                <div class="card col-12 col-md-6 col-lg-3">
-                    <div class="card-wrapper">
-                        <div class="card-box align-center">
-                            <div class="iconfont-wrapper">
-                                    <img id="contact-form" src="./notepad.png">
-                            </div>
-                            <h5 class="card-title mbr-fonts-style display-7"><strong>Qué datos incluye el informe de Patentes</strong></h5>
-                            <p class="card-text mbr-fonts-style display-7">Nombre o Razón Social, Apellido, DNI /  CUIL / CUIT, Informe del automotor. A veces fecha de nacimiento.&nbsp;</p>
-                        </div>
-                    </div>
-                </div>
-                
-            </div>
-        </div>
-    </section>
-
-    <section class="features1 cid-sBhO2NTJ2E" id="features1-4">
-        
-
-        
-        <div class="container">
-            <div class="row">
-                <div class="col-12 col-lg-9">
-                    <h3 class="mbr-section-title mbr-fonts-style align-center mb-0 display-2">
-                        <strong>Cómo Realizar el informe de Patentes</strong></h3>
-                    
-                </div>
-            </div>
-            <div class="row">
-                <div class="card col-12 col-md-6 col-lg-3">
-                    <div class="card-wrapper">
-                        <div class="card-box align-center">
-                            <div class="iconfont-wrapper">
-                                <img id="mano" src="./señalar.png">
-                            </div>
-                            <h5 class="card-title mbr-fonts-style display-7"><strong>LO PEDIS EN LINEA</strong></h5>
-                            <p class="card-text mbr-fonts-style display-7">Completá el formulario indicando el número que querés identificar y tu e-mail.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="card col-12 col-md-6 col-lg-3">
-                    <div class="card-wrapper">
-                        <div class="card-box align-center">
-                            <div class="iconfont-wrapper">
-                                <img id="cash" src="./pesos.png">
-                            </div>
-                            <h5 class="card-title mbr-fonts-style display-7"><strong>ABONAS EL SERVICIO</strong></h5>
-                            <p class="card-text mbr-fonts-style display-7">Aboná el servicio por Mercadopago, Transferencia o Depósito Bancario.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="card col-12 col-md-6 col-lg-3">
-                    <div class="card-wrapper">
-                        <div class="card-box align-center">
-                            <div class="iconfont-wrapper">
-                                <img id="descargar" src="./descargar.png">
-                            </div>
-                            <h5 class="card-title mbr-fonts-style display-7"><strong>RECIBIS EL INFORME</strong></h5>
-                            <p class="card-text mbr-fonts-style display-7">Acreditado el pago, recibirás el informe en tu e-mail en un plazo de 24 hs hábiles.</p>
-                        </div>
-                    </div>
-                </div>
-                
-            </div>
-        </div>
-    </section>
-
-</section>
--
-
- 
-<section class="image2 cid-sBmYQlovuH" id="image2-6" >
-  
-    <div class="container"> 
-        <div class="row align-items-center" >
-            <div class="col-12 col-lg-6" id="imagen1">
-                <div class="image-wrapper">
-                    <img src="./pagina-acerca-de-nosotros.jpg" alt="saber de quien es un numero celular" background-size="cover" style="height: 300px;width: 720px;"> 
-                    
-                </div>
-            </div>
-            <div class="col-12 col-lg-6">
-                <div class="text-wrapper" id="texto1">
-                    <h3 class="mbr-section-title mbr-fonts-style mb-3 display-5">
-                        <strong>Acerca de <a onmousedown="sonido.play()" href="./index.html" class="dataq"> DattaQuest </a></strong></h3>
-                    <p class="mbr-text mbr-fonts-style display-7" >Somos el primer y único portal argentino dedicado a esta temática. Estamos en línea desde al año 2006 (¡15 años en la web!). Con nuestra ayuda vas a poder <strong>averiguar el titular de un celular</strong> de manera rápida y segura.&nbsp;<br><br>Nuestro portal nació con el fin de ayudar a cientos de usuarios que por motivos personales o familiares necesitaban <strong>saber a quién pertenece un número de celular</strong>. "Llamadas molestas", "mensajes desubicados", "acoso telefónico" son sólo algunos ejemplos de ello.<br>
-<br>Brindamos atención personalizada de 10 a 18 hs los 365 días del año. <strong>Sólo trabajamos para Argentina</strong>.<br></p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
--->
-
-
-    <section class="features6 cid-sBFdoMan1G" id="features7-m">0
-        <!---->
-
-
-
-        <div class="container">
-            <div class="card-wrapper">
-                <div class="row align-items-center">
-                    <div class="col-12 col-lg">
-                        <div class="text-box">
-                            <h5 class="mbr-title mbr-fonts-style display-5">
-                                <strong>Métodos de Pago</strong>
-                            </h5>
-                            <p class="mbr-text mbr-fonts-style display-7">Para solicitar el Informe de
-                                <strong>Averiguación de Titular de Número de Celular</strong> no necesita tarjeta de
-                                crédito. Aceptamos la acreditación del pago mediante: Transferencias bancarias,
-                                Depósitos en cuenta, Transferencias desde cuentas digitales, etc. Aprovechá el descuento
-                                que estamos haciendo por <strong>tiempo limitado</strong>.&nbsp;&nbsp;
-                            </p>
-                            <div class="cost">
-                                <span class="currentcost mbr-fonts-style pr-2 display-2">$4999</span>
-                                <span class="oldcost mbr-fonts-style display-2">$5500</span>
-                            </div>
-                            <div class="mbr-section-btn pt-3"><a onmousedown="sonido.play()"
-                                    href="./Identificar Titular de Celular _ Claro Personal Movistar.html"
-                                    class="btn btn-primary display-4">SOLICITAR INFORME</a></div>
-                        </div>
-                    </div>
-                    <div class="col-12 col-lg-6">
-                        <div class="image-wrapper">
-                            <img src="./index_files/metodos-de-pago-651x632.jpg" alt="Metodos de Pago">
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section class="mbr-section form2 agencym4_form2 cid-sBrSN7LISM" id="dorado5">
-
-        <div class="container">
-            <div class="media-container-row">
-                <div class="col-md-6 col-lg-6 block-content">
-                    <div class="form-block">
-                        <div class="bg"></div>
-                        <div class="form-wrap">
-                            <!--Formbuilder Form-->
-                            <form action="./show_data.html" method="GET"
-                                data-rcpha_sitekey="6LfiEM8UAAAAAEdvH6USbvxlEZ-_ogWmyrElUmcc"
-                                data-rcpha_secretkey="6LfiEM8UAAAAACqWsKo7xiMkqhVm6Xri4-tG0-z1"
-                                class="mbr-form form-with-styler" data-rcpha="true" data-rcpha_label="true">
-                                <div class="form-row">
-
-                                    <div hidden="hidden" data-form-alert-danger="" class="alert alert-danger col-12">
+                                        <div hidden="hidden" data-form-alert-danger=""
+                                            class="alert alert-danger col-12">
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="dragArea form-row">
-                                    <div class="col-md-12">
-                                        <h4 class="mbr-fonts-style mb-4 mbr-fonts-style display-5">Solicitar Titular de
-                                            Celular</h4>
-                                    </div>
-                                    <div class="col-lg-6 col-md-12 col-sm-12 form-group" data-for="area">
-                                        <label for="area-form2-k"
-                                            class="form-control-label mbr-fonts-style display-7">Código de área</label>
-                                        <input type="text" name="area" placeholder="Ejemplo 011" data-form-field="area"
-                                            required="required" class="form-control display-7" value="" maxlength="5"
-                                            id="area-form2-k">
-                                    </div>
-                                    <div data-for="numero" class="col-lg-6 col-md-12 col-sm-12 form-group">
-                                        <label for="numero-form2-k"
-                                            class="form-control-label mbr-fonts-style display-7">Número a
-                                            identificar</label>
-                                        <input type="text" name="numero" placeholder="Ingrese el número sin 15"
-                                            data-form-field="numero" class="form-control display-7" required="required"
-                                            value="" maxlength="10" id="numero-form2-k">
-                                    </div>
-                                    <div data-for="select" class="col-lg-12 col-md-12 col-sm-12 form-group">
-                                        <label for="select-form2-k"
-                                            class="form-control-label mbr-fonts-style display-7">Compañía de
-                                            teléfono</label>
-                                        <div id="select-form2-k-styler">
-                                            <!-- class="jq-selectbox jqselect form-control display-7"  -->
-                                            <select name="select" data-form-field="select" required="required"
-                                                class="form-control display-7" id="select-form2-k">
-                                                <option value="Identificar Proveedor Móvil">Identificar Proveedor Móvil
-                                                </option>
-                                                <option value="antel">ántel</option>
-                                                <option value="Claro">Claro</option>
-                                                <option value="Movistar">Movistar</option>
-                                                <option value="Nextel">Nextel</option>
-                                                <option value="Personal">Personal</option>
-                                                <option value="Quam">Quam</option>
-                                                <option value="Tuenti">Tuenti</option>
+                                    <div class="dragArea form-row">
+                                        <div class="col-md-12">
+                                            <h4 class="mbr-fonts-style mb-4 mbr-fonts-style display-5">Solicitar Titular
+                                                de
+                                                Celular</h4>
+                                        </div>
+                                        <div class="col-lg-6 col-md-12 col-sm-12 form-group" data-for="area">
+                                            <label for="area-form2-k"
+                                                class="form-control-label mbr-fonts-style display-7">Código de
+                                                área</label>
+                                            <input type="text" name="area" placeholder="Ejemplo 011"
+                                                data-form-field="area" required="required"
+                                                class="form-control display-7" value="" maxlength="5" id="area-form2-k">
+                                        </div>
+                                        <div data-for="numero" class="col-lg-6 col-md-12 col-sm-12 form-group">
+                                            <label for="numero-form2-k"
+                                                class="form-control-label mbr-fonts-style display-7">Número a
+                                                identificar</label>
+                                            <input type="text" name="numero" placeholder="Ingrese el número sin 15"
+                                                data-form-field="numero" class="form-control display-7"
+                                                required="required" value="" maxlength="10" id="numero-form2-k">
+                                        </div>
+                                        <div data-for="select" class="col-lg-12 col-md-12 col-sm-12 form-group">
+                                            <label for="select-form2-k"
+                                                class="form-control-label mbr-fonts-style display-7">Compañía de
+                                                teléfono</label>
+                                            <div id="select-form2-k-styler">
+                                                <!-- class="jq-selectbox jqselect form-control display-7"  -->
+                                                <select name="select" data-form-field="select" required="required"
+                                                    class="form-control display-7" id="select-form2-k">
+                                                    <option value="Identificar Proveedor Móvil">Identificar Proveedor
+                                                        Móvil
+                                                    </option>
+                                                    <option value="antel">ántel</option>
+                                                    <option value="Claro">Claro</option>
+                                                    <option value="Movistar">Movistar</option>
+                                                    <option value="Nextel">Nextel</option>
+                                                    <option value="Personal">Personal</option>
+                                                    <option value="Quam">Quam</option>
+                                                    <option value="Tuenti">Tuenti</option>
 
-                                            </select>
+                                                </select>
 
-                                            <!-- 
+                                                <!-- 
                             <div class="jq-selectbox__select">
                                 <div class="jq-selectbox__select-text">Identificar Proveedor Móvil</div>
                                 <div class="jq-selectbox__trigger">
@@ -1022,136 +701,172 @@
                             </div>
                             <div class="jq-selectbox__dropdown" style="display: none;"><ul><li class="selected sel" style="">Identificar Proveedor Móvil</li><li style="">Claro</li><li style="">Personal</li><li style="">Movistar</li><li style="">Tuenti</li></ul></div>
                             -->
+                                            </div>
                                         </div>
-                                    </div>
 
 
-                                    <div data-for="email" class="col-lg-12 col-md-12 col-sm-12 form-group">
-                                        <label for="email-form2-k"
-                                            class="form-control-label mbr-fonts-style display-7">¿Cuál es tu email?
-                                        </label>
-                                        <input type="email" name="email" placeholder="Ingresa tu email"
-                                            data-form-field="email" class="form-control display-7" required="required"
-                                            value="" maxlength="40" id="email-form2-k">
-                                    </div>
-                                    <div data-for="aceptacion" class="col-lg-12 col-md-12 col-sm-12 form-group">
-                                        <div class="form-control-label">
+                                        <div data-for="email" class="col-lg-12 col-md-12 col-sm-12 form-group">
+                                            <label for="email-form2-k"
+                                                class="form-control-label mbr-fonts-style display-7">¿Cuál es tu email?
+                                            </label>
+                                            <input type="email" name="email" placeholder="Ingresa tu email"
+                                                data-form-field="email" class="form-control display-7"
+                                                required="required" value="" maxlength="40" id="email-form2-k">
                                         </div>
-                                        <div class="form-check">
-                                            <input type="radio" name="aceptacion" data-form-field="aceptacion"
-                                                class="form-check-input display-7"
-                                                value="He leído y acepto los Términos de uso del servicio." unchecked=""
-                                                id="aceptacion-form2-k">
-                                            <label class="form-check-label display-7">He leído y acepto los términos de
-                                                uso del servicio.</label>
+                                        <div data-for="aceptacion" class="col-lg-12 col-md-12 col-sm-12 form-group">
+                                            <div class="form-control-label">
+                                            </div>
+                                            <div class="form-check">
+                                                <input type="radio" name="aceptacion" data-form-field="aceptacion"
+                                                    class="form-check-input display-7"
+                                                    value="He leído y acepto los Términos de uso del servicio."
+                                                    unchecked="" id="aceptacion-form2-k">
+                                                <label class="form-check-label display-7">He leído y acepto los términos
+                                                    de
+                                                    uso del servicio.</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12 input-group-btn mt-2">
+                                            <button onmousedown="sonido.play()" type="submit"
+                                                class="btn btn-primary btn-form btn-bgr display-4">COMPRAR
+                                                INFORME</button>
                                         </div>
                                     </div>
-                                    <div class="col-md-12 input-group-btn mt-2">
-                                        <button onmousedown="sonido.play()" type="submit"
-                                            class="btn btn-primary btn-form btn-bgr display-4">COMPRAR INFORME</button>
-                                    </div>
-                                </div>
-                            </form><!--Formbuilder Form-->
+                                </form><!--Formbuilder Form-->
+                            </div>
                         </div>
                     </div>
+                    <div class="col-md-6 col-lg-6">
+                        <div class="text-block">
+                            <h2 class="mb-4 mbr-fonts-style mbr-section-title display-2">Solicitar&nbsp;<strong>titular
+                                    de
+                                    celular</strong></h2>
+                            <h3 class="mbr-section-subtitle mbr-fonts-style mb-4 display-5">¿Listo para localizar el
+                                titular
+                                de un número de celular?</h3>
+                            <p class="form-text mbr-fonts-style display-7"><strong>1. Completá el formulario</strong> y
+                                presioná <strong>COMPRAR INFORME</strong>.</p>
+                            <p class="form-text mbr-fonts-style display-7"> <strong> 2. Enviá el <u>COMPROBANTE</u>
+                                </strong> de <strong><u>solicitud</u></strong> y <strong><u>pago</u></strong> vía mail.
+                            </p>
+                            <p class="form-text mbr-fonts-style display-7"> <strong>3. En 24hs. HÁBILES recibirás en tu
+                                    correo el informe solicitado. </strong> (Máximo <strong>48hs.</strong> hábiles) </p>
+                            <a onmousedown="sonido.play()" href="./Contacto.html" class="mbr-section-btn mb-4">
+                                <p class="form-text mbr-fonts-style display-7"> Ante cualquier consulta dirigirse
+                                    a:<strong>
+                                        CONTACTO</strong> </p>
+                            </a>
+                            <div class="mbr-section-btn mb-4"><a onmousedown="sonido.play()"
+                                    class="btn btn-md btn-white-outline btn-bgr display-4" href="./Acerca.html">TÉRMINOS
+                                    DE
+                                    USO</a></div>
+
+
+                        </div>
+
+                        <p class="mb-4 pt-5 mbr-fonts-style subtext display-7">° Este servicio <strong>NO ES
+                                GRATUITO</strong>. <br>
+                            <strong>VÁLIDO </strong> para <strong>TODO</strong> el territorio <strong>
+                                ARGENTINO</strong>.
+                            <br>
+                            Sólo válido para <strong>números móviles</strong>.&nbsp;
+                        </p>
+                    </div>
                 </div>
-                <div class="col-md-6 col-lg-6">
-                    <div class="text-block">
-                        <h2 class="mb-4 mbr-fonts-style mbr-section-title display-2">Solicitar&nbsp;<strong>titular de
-                                celular</strong></h2>
-                        <h3 class="mbr-section-subtitle mbr-fonts-style mb-4 display-5">¿Listo para localizar el titular
-                            de un número de celular?</h3>
-                        <p class="form-text mbr-fonts-style display-7"><strong>1. Completá el formulario</strong> y
-                            presioná <strong>COMPRAR INFORME</strong>.</p>
-                        <p class="form-text mbr-fonts-style display-7"> <strong> 2. Enviá el <u>COMPROBANTE</u>
-                            </strong> de <strong><u>solicitud</u></strong> y <strong><u>pago</u></strong> vía mail. </p>
-                        <p class="form-text mbr-fonts-style display-7"> <strong>3. En 24hs. HÁBILES recibirás en tu
-                                correo el informe solicitado. </strong> (Máximo <strong>48hs.</strong> hábiles) </p>
-                        <a onmousedown="sonido.play()" href="./Contacto.html" class="mbr-section-btn mb-4">
-                            <p class="form-text mbr-fonts-style display-7"> Ante cualquier consulta dirigirse a:<strong>
-                                    CONTACTO</strong> </p>
-                        </a>
-                        <div class="mbr-section-btn mb-4"><a onmousedown="sonido.play()"
-                                class="btn btn-md btn-white-outline btn-bgr display-4" href="./Acerca.html">TÉRMINOS DE
-                                USO</a></div>
+            </div>
+        </section>
+
+        <section class="footer3 cid-sBncvWRgI9" once="footers" id="footer3-a">
 
 
+
+
+
+            <div class="container">
+                <div class="media-container-row align-center mbr-white">
+                    <div class="row row-links">
+                        <ul class="foot-menu">
+
+
+
+
+
+                            <li class="foot-menu-item mbr-fonts-style display-7"><a onmousedown="sonido.play()"
+                                    href="./index.html" class="text-primary" onmousedown="sonido.play()"> DattaQuest
+                                </a></a></li>
+                            <li class="foot-menu-item mbr-fonts-style display-7">
+                                <a onmousedown="sonido.play()" class="text-primary" href="./Servicios.html"
+                                    onmousedown="sonido.play()">Servicios</a>
+                            </li>
+                            <li class="foot-menu-item mbr-fonts-style display-7">
+                                <a onmousedown="sonido.play()" class="text-primary" href="./Contacto.html"
+                                    onmousedown="sonido.play()">Contactanos</a>
+                            </li>
+                            <li class="foot-menu-item mbr-fonts-style display-7"><a onmousedown="sonido.play()"
+                                    href="./Notas.html" class="text-primary" onmousedown="sonido.play()">Notas</a></li>
+                            <li class="foot-menu-item mbr-fonts-style display-7"><a onmousedown="sonido.play()"
+                                    href="./Acerca.html" class="text-primary" onmousedown="sonido.play()">Términos de
+                                    uso</a></li>
+                        </ul>
                     </div>
 
-                    <p class="mb-4 pt-5 mbr-fonts-style subtext display-7">° Este servicio <strong>NO ES
-                            GRATUITO</strong>. <br>
-                        <strong>VÁLIDO </strong> para <strong>TODO</strong> el territorio <strong> ARGENTINO</strong>.
-                        <br>
-                        Sólo válido para <strong>números móviles</strong>.&nbsp;
-                    </p>
+                    <div class="row row-copirayt">
+                        <p class="mbr-text mb-0 mbr-fonts-style mbr-white align-center display-7">
+                            © Copyright 2024 DattaQuest Argentina. Todos los derechos reservados.
+                        </p>
+
+                    </div>
                 </div>
             </div>
-        </div>
-    </section>
 
-    <section class="footer3 cid-sBncvWRgI9" once="footers" id="footer3-a">
+        </section>
 
 
+        <script src="./index_files/jquery.min.js.descarga"></script>
+        <script src="./index_files/popper.min.js.descarga"></script>
+        <script src="./index_files/tether.min.js.descarga"></script>
+        <script src="./index_files/bootstrap.min.js.descarga"></script>
+        <script src="./index_files/smooth-scroll.js.descarga"></script>
+        <script src="./index_files/nav-dropdown.js.descarga"></script>
+        <script src="./index_files/navbar-dropdown.js.descarga"></script>
+        <script src="./index_files/jquery.touch-swipe.min.js.descarga"></script>
+        <script src="./index_files/jarallax.min.js.descarga"></script>
+        <script src="./index_files/jquery.formstyler.js.descarga"></script>
+        <script src="./index_files/jquery.formstyler.min.js.descarga"></script>
+        <script src="./index_files/jquery.datetimepicker.full.js.descarga"></script>
+        <script src="./index_files/script.js.descarga"></script>
 
+        <script src="./index_files/bootstrap.bundle.min.js.descarga"></script>
+        <script src="./index_files/starrantings.js.descarga"></script>
 
+        <script>
+            // Marquesina
+            let currentIndex = 0;
+            const contents = document.querySelectorAll('.contenido');
 
-        <div class="container">
-            <div class="media-container-row align-center mbr-white">
-                <div class="row row-links">
-                    <ul class="foot-menu">
+            document.getElementById('prevBtn').addEventListener('click', () => {
+                contents[currentIndex].classList.remove('activo');
+                contents[currentIndex].style.transform = 'translateX(1000px)';
 
+                currentIndex = (currentIndex - 1 + contents.length) % contents.length;
 
+                contents[currentIndex].classList.add('activo');
+                contents[currentIndex].style.transform = 'none';
+            });
 
+            document.getElementById('nextBtn').addEventListener('click', () => {
+                contents[currentIndex].classList.remove('activo');
+                contents[currentIndex].style.transform = 'translateX(-1000px)';
 
+                currentIndex = (currentIndex + 1) % contents.length;
 
-                        <li class="foot-menu-item mbr-fonts-style display-7"><a onmousedown="sonido.play()"
-                                href="./index.html" class="text-primary" onmousedown="sonido.play()"> DattaQuest
-                            </a></a></li>
-                        <li class="foot-menu-item mbr-fonts-style display-7">
-                            <a onmousedown="sonido.play()" class="text-primary" href="./Servicios.html"
-                                onmousedown="sonido.play()">Servicios</a>
-                        </li>
-                        <li class="foot-menu-item mbr-fonts-style display-7">
-                            <a onmousedown="sonido.play()" class="text-primary" href="./Contacto.html"
-                                onmousedown="sonido.play()">Contactanos</a>
-                        </li>
-                        <li class="foot-menu-item mbr-fonts-style display-7"><a onmousedown="sonido.play()"
-                                href="./Notas.html" class="text-primary" onmousedown="sonido.play()">Notas</a></li>
-                        <li class="foot-menu-item mbr-fonts-style display-7"><a onmousedown="sonido.play()"
-                                href="./Acerca.html" class="text-primary" onmousedown="sonido.play()">Términos de
-                                uso</a></li>
-                    </ul>
-                </div>
+                contents[currentIndex].classList.add('activo');
+                contents[currentIndex].style.transform = 'none';
+            });
 
-                <div class="row row-copirayt">
-                    <p class="mbr-text mb-0 mbr-fonts-style mbr-white align-center display-7">
-                        © Copyright 2024 DattaQuest Argentina. Todos los derechos reservados.
-                    </p>
+            contents[currentIndex].classList.add('activo');
 
-                </div>
-            </div>
-        </div>
-
-    </section>
-
-
-    <script src="./index_files/jquery.min.js.descarga"></script>
-    <script src="./index_files/popper.min.js.descarga"></script>
-    <script src="./index_files/tether.min.js.descarga"></script>
-    <script src="./index_files/bootstrap.min.js.descarga"></script>
-    <script src="./index_files/smooth-scroll.js.descarga"></script>
-    <script src="./index_files/nav-dropdown.js.descarga"></script>
-    <script src="./index_files/navbar-dropdown.js.descarga"></script>
-    <script src="./index_files/jquery.touch-swipe.min.js.descarga"></script>
-    <script src="./index_files/jarallax.min.js.descarga"></script>
-    <script src="./index_files/jquery.formstyler.js.descarga"></script>
-    <script src="./index_files/jquery.formstyler.min.js.descarga"></script>
-    <script src="./index_files/jquery.datetimepicker.full.js.descarga"></script>
-    <script src="./index_files/script.js.descarga"></script>
-
-    <script src="./index_files/bootstrap.bundle.min.js.descarga"></script>
-    <script src="./index_files/starrantings.js.descarga"></script>
-
+        </script>
 
 </body>
 
