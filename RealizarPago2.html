@@ -409,7 +409,6 @@ data-preference-id="477100335-89e6bb94-a775-4b1b-8f34-344539fa73b2" data-source=
     })
 
     var datos = [];
-    console.log(datos)
 
     /*variable que extrae los datos del form del index */
     var args = location.search.substr(1).split('&');
@@ -417,7 +416,6 @@ data-preference-id="477100335-89e6bb94-a775-4b1b-8f34-344539fa73b2" data-source=
     for (var i = 0; i < args.length; ++i) {
       /*variable parts = Trae los datos del form y si es distinto de null lo vuelca en el documento*/
       var parts = args[i].split('=');
-      console.log(parts[1])
 
       if (parts != null) {
         var field = parts[0];
@@ -465,9 +463,6 @@ data-preference-id="477100335-89e6bb94-a775-4b1b-8f34-344539fa73b2" data-source=
 
     var Numero = '<strong>' + datos[2] + '-' + datos[3] + '</strong>';
     numero.innerHTML = Numero;
-
-    console.log(datos[3])
-
 
   </script>
 
