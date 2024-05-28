@@ -51,12 +51,48 @@
       top: 15px;
     }
 
+    .c1 {
+      padding: 10px
+    }
+
+    #solicitudcorrecta {
+      background-color: #2071a5;
+      color: white;
+      padding: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    #metodos {
+      background-color: #2071a5;
+      color: white;
+      padding: 10px;
+    }
+
+    #comprobante {
+      background-image: url('Comprobante2.png');
+      background-size: contain
+    }
+
     #rojo {
       color: #E43F3F
     }
 
     #rojo2 {
       color: #E43F3F
+    }
+
+    #modal ::backdrop {
+      background-color: rgba(0, 0, 0, .90);
+    }
+
+    #modal {
+      max-width: 80%;
+    }
+
+    #btn-cerrar-modal {
+      color: red;
+      float: right
     }
   </style>
 
@@ -153,28 +189,101 @@
     </nav>
   </section>
 
-  <section class="content4 cid-sHRyBgCOEA" id="content4-2e">
+  <br>
 
-    <div class="container">
-      <div class="row justify-content-center">
-        <div class="title col-md-12 col-lg-10">
-          <h3 class="mbr-section-title mbr-fonts-style align-center mb-4 display-2"><strong>Pagá tu informe
-              ahora!</strong></h3>
+  <dialog id="modal">
 
-        </div>
+    <button onmousedown="sonido.play()" id="btn-cerrar-modal"> X </button>
+
+    <div class="popupContent">
+      <div id="contenido">
+        <b>Si tu pedido que solicitaste, no corresponde con nuestras bases y condiciones o no podemos encontrar el
+          informe, podrás optar por cualquiera de estas dos opciones:</b>
+        <ul>
+          <li>Te haremos devolución total e inmediata.</li>
+          <li>Podemos hacer cualquier otra solicitud.</li>
+        </ul>
+        <span style="color: #4c4c4c"><b>RECUERDA</b> que el <b>reclamo</b> debe ser dentro del mes, en el que
+          solicitaste el pedido.</span>
       </div>
     </div>
 
 
-  </section>
+  </dialog>
 
+  <div class="c1">
+    <div id="solicitudcorrecta">
+      <h1> <strong> 1 - </strong> Tu solicitud se procesó correctamente </h1>
+      <h1> <strong> COMPROBANTE de INFORME </strong> </h1>
+    </div>
+  </div>
+  <div id="comprobante">
+    <br>
+    <p> 🔎 <strong> Informe sobre el número de celular: </strong> <strong id="numero"> </strong> </p>
+
+    <div class="pagosTableDescription">
+      <div class="service-content-section">Averigua acerca de este teléfono fijo:
+        <ul>
+          <li>Nombre del titular.</li>
+          <li>Domicilio al que corresponde.</li>
+          <li>De acuerdo a la disponibilidad.</li>
+        </ul>
+      </div>
+      <div class="service-features-section">
+        <ul>
+          <li> <strong> Aviso por e-mail cuando está disponible </strong>. </li>
+          <li>Lo recibes en <strong>menos de 24 horas HÁBILES</strong> desde la acreditación del pago. <i> (puede haber
+              demora hasta de 48 hs hábiles).
+            </i></li>
+          <li> <strong> ¡Garantía de Satisfacción! </strong> <span id="btn-abrir-modal" class="formCellHelp"><a
+                onmousedown="sonido.play()" href="javascript:;"> (ver garantía) </a>.
+              <br>
+              <span class="formCellHelpText">Si el informe no te resulta satisfactorio y nos presentas uno que a tu
+                juicio supera al recibido o si la investigación no arroja resultados, <strong> se reintegra tu pago
+                  íntegramente. </strong> </span></span></li>
+        </ul>
+      </div>
+    </div>
+    <br>
+  </div>
+  <div class="c1">
+    <div id="metodos">
+      <h1> <strong> 2 - </strong> Seleccione el método de pago </h1>
+    </div>
   </div>
 
-  </div>
-  </div>
 
+  <!-- 
 
-  </section>
+<section class="content5 cid-sMvUg3uKdh" id="content5-2p">
+    
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-12 col-lg-10">
+                
+                <h4 class="mbr-section-subtitle mbr-fonts-style mb-4 display-5"><strong>
+                    Mercado Pago</strong></h4>
+                <p class="mbr-text mbr-fonts-style display-7">1. Abra la APP de MercadoPago en su celular o PC
+<br>
+<br>2. Ingrese a <strong>"TRANSFERIR DINERO"</strong>. Luego <strong>"NUEVA CUENTA Con CBU, CVU o Alias"</strong>.
+<br>
+<br>3. En <strong>AGREGAR CUENTA</strong> Ingrese este <strong>CVU: 0000013000003291615694
+</strong><br>
+<br>4. Haga clic en <strong>TRANSFERIR</strong>. Luego envíe el comprobante respondiendo el correo que le hemos enviado a su email (mirar SPAM por las dudas le haya llegado allí).</p>
+<script src="https://www.mercadopago.com.ar/integrations/v1/web-payment-checkout.js"
+data-preference-id="477100335-89e6bb94-a775-4b1b-8f34-344539fa73b2" data-source="button">
+</script>            
+</div>
+            
+        </div>
+    </div>
+
+    
+</section>
+
+-->
+
+  <br> <br><br>
 
   <section class="content5 cid-sHRyBiIhWw" id="content5-2h">
 
@@ -186,25 +295,11 @@
           <p class="mbr-text mbr-fonts-style display-7"><strong>
               CVU: 0000013000003291615694 </strong><br><strong><br></strong> Luego envíe el <strong> COMPROBANTE
             </strong> por <strong> <a onmousedown="sonido.play()" href="mailto:dattaquest.manager@gmail.com">
-                dattaquest.manager@gmail.com </a> </strong> <br>
+                dattaquest.manager@gmail.com</a> </strong> <br>
 
             Y también el <strong> COMPROBANTE </strong>de <strong> PAGO</strong> (mirar SPAM por las dudas le haya
             llegado allí). </strong> <br> </p>
         </div>
-
-
-
-
-
-
-
-
-        <button onmousedown="sonido.play()" type="submit" class="btn display-4">
-          <a onmousedown="sonido.play()" href="javascript:history.back()"> <strong> ← Volver al COMPROBANTE </strong>
-          </a>
-        </button>
-
-        <br> <br>
 
         <div class="col-md-12 col-lg-10" id="rojo">
           <br>
@@ -224,19 +319,35 @@
           </p>
         </div>
 
-
-
       </div>
     </div>
-
-
-
-
-
   </section>
 
-  <br><br><br><br><br>
+  <!-- 
 
+<section id="botonpago">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-12 col-lg-10">
+                
+        <h4 class="mbr-section-subtitle mbr-fonts-style mb-4 display-5"><strong>Paypal</strong></h4>
+        <p class="mbr-text mbr-fonts-style display-7">Puede pagar con saldo de Paypal o mediante el uso de una tarjeta de crédito.<strong><br></strong></p>
+    
+    
+      <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top" >
+        <input type="hidden" name="cmd" value="_s-xclick">
+        <input type="hidden" name="hosted_button_id" value="7ZXYFZKAFMD4E">
+        <input type="image" src="https://www.paypalobjects.com/es_XC/AR/i/btn/btn_buynowCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
+        <img alt="" border="0" src="https://www.paypalobjects.com/es_XC/i/scr/pixel.gif" width="1" height="1">
+        </form>
+      </div> 
+    </div>
+</div>
+
+</section>
+ <br><br><br><br><br>
+
+ -->
 
   <section class="footer3 cid-sBncvWRgI9" once="footers" id="footer3-a">
 
@@ -280,6 +391,60 @@
   </section>
 
 
+  <script language="javascript">
+
+    const btnAbrirModal =
+      document.querySelector("#btn-abrir-modal");
+    const btnCerrarModal =
+      document.querySelector("#btn-cerrar-modal");
+    const modal =
+      document.querySelector("#modal");
+
+    btnAbrirModal.addEventListener("click", () => {
+      modal.showModal();
+    })
+
+    btnCerrarModal.addEventListener("click", () => {
+      modal.close();
+    })
+
+    var datos = [];
+
+    /*variable que extrae los datos del form del index */
+    var args = location.search.substr(1).split('&');
+
+    for (var i = 0; i < args.length; ++i) {
+      /*variable parts = Trae los datos del form y si es distinto de null lo vuelca en el documento*/
+      var parts = args[i].split('=');
+
+      if (parts != null) {
+        var field = parts[0];
+        var value = parts[1];
+        datos.push(value)
+
+        if (value == null) {
+
+          /*si el valor es nulo nos tira un null*/
+
+          value = "null"
+        }
+        /*caso contrario nos devuelve el valor en la variable "value"*/
+        else {
+          value = unescape(value.replace(/\+/g, ' '));
+        }
+
+        // document.writeln('<p>' + field + ':' + value + '</p>');
+        // document.writeln('<p>' + value + '</p>');
+
+
+      }
+    }
+
+  </script>
+
+
+
+
   <script src="./Realizar Pago_files/jquery.min.js.descarga"></script>
   <script src="./Realizar Pago_files/popper.min.js.descarga"></script>
   <script src="./Realizar Pago_files/tether.min.js.descarga"></script>
@@ -292,6 +457,15 @@
 
   <script src="./Realizar Pago_files/bootstrap.bundle.min.js.descarga"></script>
   <script src="./Realizar Pago_files/starrantings.js.descarga"></script>
+
+
+  <script>
+
+    var Numero = '<strong>' + datos[0] + '-' + datos[1] + '</strong>'
+    numero.innerHTML = Numero;
+
+  </script>
+
 
 
 
