@@ -95,6 +95,18 @@
       color: red;
       float: right
     }
+
+    dialog::backdrop {
+      background-color: rgba(0, 0, 0, 0.5);
+      /* Fondo gris semitransparente */
+    }
+
+    dialog {
+      border: none;
+      border-radius: 5px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+    }
   </style>
 
 
@@ -235,11 +247,11 @@
         <ul>
           <li> <strong> Aviso por e-mail cuando está disponible </strong>. </li>
           <li>Lo recibes en <strong>menos de 24 horas HÁBILES</strong> desde la acreditación del pago <i> (puede haber
-            demora hasta de 48 hs hábiles).
-          </i></li>
+              demora hasta de 48 hs hábiles).
+            </i></li>
           <li> <strong> ¡Garantía de Satisfacción! </strong> <span id="btn-abrir-modal" class="formCellHelp"><a
                 onmousedown="sonido.play()" href="javascript:;"> (ver garantía) </a>.
-              </li>
+          </li>
         </ul>
       </div>
     </div>
