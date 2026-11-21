@@ -1,0 +1,71 @@
+/* DattaQuest — páginas gratuitas independientes */
+:root{--dq-gold:#f5c85f;--dq-bronze:#b38a41;--dq-border:#604c24;--dq-text:#f8f1e5;--dq-muted:#c9bea9;--dq-bg:#0a0a0b;--dq-panel:#191919}
+html{scroll-behavior:smooth}
+body.dq-page{background:#0a0a0b;color:var(--dq-text);font-family:'Jost',Arial,Helvetica,sans-serif;min-height:100vh}
+body.dq-page:before{content:'';position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 18% 20%,rgba(155,105,22,.13),transparent 48%),radial-gradient(ellipse at 85% 67%,rgba(173,125,41,.08),transparent 40%);z-index:-1}
+.dq-main{padding:145px 16px 50px;max-width:1150px;margin:auto}
+.dq-trail{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px;font-size:13px;color:var(--dq-muted)}
+.dq-trail a{color:var(--dq-gold);text-decoration:none}
+.dq-trail a:hover{text-decoration:underline}
+.dq-hero{padding:37px 38px;border:1px solid #765a28;background:linear-gradient(125deg,#19150f,#101011 68%,#201913);border-radius:12px;box-shadow:0 16px 50px rgba(0,0,0,.18)}
+.dq-eyebrow{display:inline-block;color:#0e0d0a;background:var(--dq-gold);font-size:11px;font-weight:800;border-radius:30px;letter-spacing:.12em;padding:7px 12px;text-transform:uppercase}
+.dq-hero h1{font-size:clamp(27px,4.5vw,43px);font-weight:800;line-height:1.14;color:var(--dq-gold);margin:18px 0 13px}
+.dq-hero p{font-size:17px;max-width:750px;line-height:1.6;color:#e8ddca;margin-bottom:0}
+.dq-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(250px,.75fr);gap:22px;margin-top:24px;align-items:start}
+.dq-panel{background:var(--dq-panel);border:1px solid #494032;border-radius:12px;padding:28px;box-shadow:0 7px 25px rgba(0,0,0,.12)}
+.dq-panel h2{font-size:23px;font-weight:750;color:var(--dq-gold);margin:0 0 13px}
+.dq-panel h3{font-size:18px;color:var(--dq-gold);margin:0 0 14px}
+.dq-panel p{font-size:15px;color:var(--dq-muted);line-height:1.65;margin:0 0 14px}
+.dq-panel p:last-child{margin-bottom:0}
+.dq-field{display:block;margin:20px 0 7px;color:#f4e7cf;font-size:14px;font-weight:650}
+.dq-input{width:100%;background:#0c0d0f;border:1px solid #897348;border-radius:7px;color:#fff;min-height:49px;padding:10px 13px;font-size:17px;outline:none}
+.dq-input:focus{border-color:var(--dq-gold);box-shadow:0 0 0 3px rgba(245,200,95,.17)}
+.dq-input::placeholder{color:#8f8d88}
+.dq-btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border:1px solid #edbd52;border-radius:7px;background:var(--dq-gold);color:#16120c!important;font-weight:800;text-align:center;min-height:45px;padding:10px 19px;cursor:pointer;text-decoration:none!important;font-size:14px;transition:filter .2s}
+.dq-btn:hover{filter:brightness(1.11)}
+.dq-btn:focus-visible{outline:2px solid white;outline-offset:2px}
+.dq-btn:disabled{opacity:.55;cursor:wait}
+.dq-btn-secondary{background:#252017;color:#f6d88e!important;}
+.dq-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:19px}
+.dq-help{font-size:13px!important;color:#b8ac98!important;margin-top:8px!important}
+.dq-result{display:none;margin-top:22px;border:1px solid #655330;border-left:4px solid var(--dq-gold);border-radius:6px;padding:17px;background:#242018;color:#efe5d3;line-height:1.55;overflow-wrap:anywhere}
+.dq-result.is-visible{display:block}
+.dq-result[data-type="error"]{border-color:#a96464;border-left-color:#e49a90;background:#302020}
+.dq-result[data-type="success"]{border-color:#62775a;border-left-color:#9ad083;background:#182618}
+.dq-result strong{display:block;margin-bottom:7px;color:#fff}
+.dq-list{padding-left:19px;color:var(--dq-muted);line-height:1.8;font-size:14px}
+.dq-list li{margin-bottom:7px}
+.dq-source{border-top:1px solid #4c4029;padding-top:15px;margin-top:18px!important}
+.dq-source a,.dq-panel a:not(.dq-btn),.dq-footer a{color:#f5ca72;text-decoration:underline;text-underline-offset:3px}
+.dq-services{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:25px}
+.dq-service-link{border:1px solid #66502d;background:#1c1a17;padding:18px;border-radius:9px;color:#f4d28a!important;text-decoration:none!important;min-height:105px;display:flex;flex-direction:column;justify-content:center;gap:7px;transition:transform .15s,border-color .15s}
+.dq-service-link:hover,.dq-service-link[aria-current="page"]{border-color:#f5c85f;background:#262018;transform:translateY(-2px)}
+.dq-service-link span{font-size:14px;font-weight:700}
+.dq-service-link small{color:#c7bda9;font-size:12px}
+.dq-footer{border-top:1px solid #544024;margin-top:54px;padding:24px 12px;text-align:center;color:#d2bd95;font-size:13px}
+.dq-quote-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}
+.dq-quote{background:#101010;border:1px solid #60502e;border-radius:9px;padding:15px}
+.dq-quote h3{font-size:16px;margin:0 0 12px}
+.dq-prices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dq-prices div{display:flex;flex-direction:column;gap:4px}
+.dq-prices small{color:#b5a88c;font-size:12px}
+.dq-prices strong{font-size:20px;color:#fce2ac;font-weight:800}
+.dq-quote time{display:block;font-size:11px;color:#aaa; margin-top:12px}
+@media(max-width:991px){.dq-main{padding-top:120px}.dq-grid{grid-template-columns:1fr}.dq-services{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.dq-main{padding:110px 12px 35px}.dq-hero{padding:26px 21px}.dq-panel{padding:22px 18px}.dq-services{grid-template-columns:1fr}.dq-quote-grid{grid-template-columns:1fr}.dq-hero p{font-size:15px}}
+
+/* Apariencia del desplegable histórico SERVICIOS, originalmente declarada inline. */
+.dq-page #tumama{color:#f5c85f!important;font-size:17.4px;font-family:sans-serif;background:#000;border:0;cursor:pointer;padding:8px 7px}
+.dq-page #tupapa{position:relative}
+.dq-page #tuhijo{width:220px;max-width:90vw;background:#121212;border:1px solid #806526;color:#f5c85f}
+.dq-page #collapseOne{position:absolute;top:100%;z-index:1450}
+.dq-page #tuhijo .nav-link{color:#f5c85f!important;font-size:14px;padding:9px 8px}
+.dq-page #tuhijo .nav-link:hover{color:#fff!important;background:#473415}
+@media(max-width:991px){.dq-page #collapseOne{position:static}.dq-page #tuhijo{width:100%}}
+/* El menú de Servicios original no debe verse como una tarjeta blanca en estas páginas. */
+.dq-page #accordion > .card,
+.dq-page #accordion > .card > .card-header {background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;margin:0!important}
+.dq-page .navbar .nav-item > a:not(.dq-service-link){color:#f5c85f!important}
+
+.dq-result-action{display:inline-block;margin-top:12px;color:#f5c85f!important;text-decoration:underline;font-weight:650;}
+.dq-result-action:focus-visible{outline:2px solid white;outline-offset:3px}

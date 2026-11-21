@@ -1,0 +1,162 @@
+[
+  {
+    "codigo": "11",
+    "localidad": "AMBA",
+    "provincia": "CABA y Buenos Aires"
+  },
+  {
+    "codigo": "220",
+    "localidad": "Merlo",
+    "provincia": "Buenos Aires"
+  },
+  {
+    "codigo": "2202",
+    "localidad": "González Catán",
+    "provincia": "Buenos Aires"
+  },
+  {
+    "codigo": "221",
+    "localidad": "La Plata",
+    "provincia": "Buenos Aires"
+  },
+  {
+    "codigo": "2221",
+    "localidad": "Magdalena",
+    "provincia": "Buenos Aires"
+  },
+  {
+    "codigo": "2223",
+    "localidad": "Coronel Brandsen",
+    "provincia": "Buenos Aires"
+  },
+  {
+    "codigo": "2224",
+    "localidad": "Glew",
+    "provincia": "Buenos Aires"
+  },
+  {
+    "codigo": "2225",
+    "localidad": "Alejandro Korn",
+    "provincia": "Buenos Aires"
+  },
+  {
+    "codigo": "2226",
+    "localidad": "Cañuelas",
+    "provincia": "Buenos Aires"
+  },
+  {
+    "codigo": "2227",
+    "localidad": "Lobos",
+    "provincia": "Buenos Aires"
+  },
+  {
+    "codigo": "223",
+    "localidad": "Mar del Plata",
+    "provincia": "Buenos Aires"
+  },
+  {
+    "codigo": "291",
+    "localidad": "Bahía Blanca",
+    "provincia": "Buenos Aires"
+  },
+  {
+    "codigo": "261",
+    "localidad": "Mendoza",
+    "provincia": "Mendoza"
+  },
+  {
+    "codigo": "264",
+    "localidad": "San Juan",
+    "provincia": "San Juan"
+  },
+  {
+    "codigo": "266",
+    "localidad": "San Luis",
+    "provincia": "San Luis"
+  },
+  {
+    "codigo": "280",
+    "localidad": "Trelew",
+    "provincia": "Chubut"
+  },
+  {
+    "codigo": "297",
+    "localidad": "Comodoro Rivadavia",
+    "provincia": "Chubut"
+  },
+  {
+    "codigo": "299",
+    "localidad": "Neuquén",
+    "provincia": "Neuquén"
+  },
+  {
+    "codigo": "341",
+    "localidad": "Rosario",
+    "provincia": "Santa Fe"
+  },
+  {
+    "codigo": "342",
+    "localidad": "Santa Fe",
+    "provincia": "Santa Fe"
+  },
+  {
+    "codigo": "343",
+    "localidad": "Paraná",
+    "provincia": "Entre Ríos"
+  },
+  {
+    "codigo": "351",
+    "localidad": "Córdoba",
+    "provincia": "Córdoba"
+  },
+  {
+    "codigo": "362",
+    "localidad": "Resistencia",
+    "provincia": "Chaco"
+  },
+  {
+    "codigo": "370",
+    "localidad": "Formosa",
+    "provincia": "Formosa"
+  },
+  {
+    "codigo": "376",
+    "localidad": "Posadas",
+    "provincia": "Misiones"
+  },
+  {
+    "codigo": "379",
+    "localidad": "Corrientes",
+    "provincia": "Corrientes"
+  },
+  {
+    "codigo": "380",
+    "localidad": "La Rioja",
+    "provincia": "La Rioja"
+  },
+  {
+    "codigo": "381",
+    "localidad": "San Miguel de Tucumán",
+    "provincia": "Tucumán"
+  },
+  {
+    "codigo": "383",
+    "localidad": "San Fernando del Valle de Catamarca",
+    "provincia": "Catamarca"
+  },
+  {
+    "codigo": "385",
+    "localidad": "Santiago del Estero",
+    "provincia": "Santiago del Estero"
+  },
+  {
+    "codigo": "387",
+    "localidad": "Salta",
+    "provincia": "Salta"
+  },
+  {
+    "codigo": "388",
+    "localidad": "San Salvador de Jujuy",
+    "provincia": "Jujuy"
+  }
+]
