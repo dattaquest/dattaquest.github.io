@@ -1,0 +1,9 @@
+name = "dattaquest-api"
+main = "worker.mjs"
+compatibility_date = "2026-11-20"
+workers_dev = true
+
+[vars]
+ALLOWED_ORIGIN = "https://tomiaf98.github.io"
+# Jamás incluyas aquí tokens o claves privadas.
+# Las direcciones de proveedores y tokens van en variables/secrets de Cloudflare.
