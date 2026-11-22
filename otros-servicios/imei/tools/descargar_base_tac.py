@@ -11,7 +11,7 @@ HERE=Path(__file__).resolve().parent.parent
 OUT=HERE/'data'/'tac.sqlite'
 SOURCE='https://raw.githubusercontent.com/G33l0/imei-generator/main/data/tac.sqlite'
 print('Descargando copia de datos TAC públicos desde GitHub...')
-req=Request(SOURCE,headers={'User-Agent':'DattaQuest/1.0 (+https://github.com/TomiAF98/dattashamir)'})
+req=Request(SOURCE,headers={'User-Agent':'DattaQuest/1.0 (+https://github.com/dattaquest/dattaquest.github.io)'})
 with urlopen(req,timeout=35) as r:
     data=r.read(15_000_001)
 if len(data)<50_000 or len(data)>15_000_000 or not data.startswith(b'SQLite format 3\0'):

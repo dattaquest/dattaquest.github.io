@@ -1,0 +1,50 @@
+name: Actualizar base IMEI TAC (Osmocom)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '25 5 1 * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dattaquest-tac
+  cancel-in-progress: false
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Descargar y validar la copia comunitaria de Osmocom
+        run: python otros-servicios/imei/tools/descargar_base_tac.py
+      - name: Generar fragmentos JSON locales
+        run: python otros-servicios/imei/tools/convertir_base_tac.py
+      - name: Comprobar el catálogo y no publicar si está vacío
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('otros-servicios/imei/data')
+          config=json.loads((p/'config.json').read_text())
+          shards=list((p/'tac').glob('*.json'))
+          assert config['local_json'] and config['registros'] >= 1000
+          assert len(shards)>0
+          assert sum(len(json.loads(s.read_text())) for s in shards)==config['registros']
+          print(config['registros'], 'TAC disponibles en', len(shards), 'fragmentos')
+          PY
+      - name: Guardar resultados en el repositorio
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add otros-servicios/imei/data/config.json otros-servicios/imei/data/tac/
+          if ! git diff --cached --quiet; then
+            git commit -m 'Datos: actualizar TAC Osmocom'
+            git push
+          else
+            echo 'No hay cambios en el catálogo TAC'
+          fi
