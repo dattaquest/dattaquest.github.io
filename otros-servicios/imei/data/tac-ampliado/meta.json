@@ -1,0 +1,8 @@
+{
+  "registros": 268969,
+  "url": "https://raw.githubusercontent.com/MoazEb/tac-database/main/tac_full.csv",
+  "sha256": "eb40af1dc0681de9cf5e193dc306eab879648f67c0bb61f7c151e9493564d169",
+  "generado_utc": "2026-11-22T04:21:33+00:00",
+  "origen": "MoazEb/tac-database (compilación comunitaria)",
+  "licencias": "MIT para aportes propios; las fuentes derivadas Osmocom conservan CC BY-SA 3.0"
+}
