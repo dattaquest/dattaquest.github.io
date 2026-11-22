@@ -1,1 +1,4 @@
-/* Estilos exclusivos de esta herramienta. Personalizá acá sin afectar al resto del sitio. */
+/* Resultados del buscador geográfico, sin modificar otras páginas */
+.dq-prefijos-coincidencias{padding-left:20px;margin:14px 0;color:#efe5d3;line-height:1.7}
+.dq-prefijos-coincidencias li{margin:0 0 7px}
+.dq-prefijos-coincidencias b{color:#f5c85f}
