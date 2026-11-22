@@ -1,1 +1,17 @@
 /* Estilos exclusivos de esta herramienta. Personalizá acá sin afectar al resto del sitio. */
+
+/* IMEI: cada dato ocupa su propio renglón, con la advertencia separada. */
+.dq-result .dq-imei-line {
+  margin: 0 0 6px;
+  color: #efe5d3;
+  line-height: 1.6;
+}
+.dq-result .dq-imei-label {
+  font-weight: 700;
+  color: #ffffff;
+}
+.dq-result .dq-imei-warning {
+  margin: 16px 0 0;
+  color: #e4dac9;
+  line-height: 1.6;
+}
