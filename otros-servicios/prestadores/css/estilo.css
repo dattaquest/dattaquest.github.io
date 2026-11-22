@@ -1,1 +1,5 @@
 /* Estilos exclusivos de esta herramienta. Personalizá acá sin afectar al resto del sitio. */
+
+/* La marca histórica se identifica debajo del nombre legal del prestador. */
+.dq-result .dq-prestador-marca{margin:3px 0 13px;line-height:1.6;color:#f6e8c9}
+.dq-result .dq-prestador-marca b{color:#fff;font-weight:700}

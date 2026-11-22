@@ -4,6 +4,32 @@
 const f=document.getElementById('dqForm');
 const official='https://www.enacom.gob.ar/buscador-de-prestadores_p1510';
 let datasetPromise;
+
+function normalizedCompany(value) {
+ return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+   .toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim().replace(/\s+/g,' ');
+}
+function knownBrand(company) {
+ const name=normalizedCompany(company);
+ if(/^TELEFONICA MOVILES ARGENTINA(?: S A| SOCIEDAD ANONIMA)?$/.test(name))return 'Movistar';
+ if(/^COMPANIA DE RADIOCOMUNICACIONES MOVILES(?: S A| SOCIEDAD ANONIMA)?$/.test(name))return 'Personal';
+ if(/^AMX ARGENTINA(?: S A| SOCIEDAD ANONIMA)?$/.test(name))return 'Claro';
+ return '';
+}
+function showAssociatedBrand(company) {
+ const brand=knownBrand(company);
+ if(!brand)return;
+ const parent=document.getElementById('dqResult');
+ const heading=parent && parent.querySelector('strong');
+ if(!heading)return;
+ const row=document.createElement('p');
+ row.className='dq-prestador-marca';
+ const label=document.createElement('b');
+ label.textContent='Marca comercial asociada: ';
+ row.append(label, document.createTextNode(brand+'.'));
+ heading.insertAdjacentElement('afterend',row);
+}
+
 function loadAssignments(){
  if (!datasetPromise) datasetPromise=fetch('./data/asignaciones.json',{cache:'default'}).then(r=>{
   if(!r.ok)throw Error('SIN_BASE');return r.json();
@@ -52,6 +78,7 @@ f.addEventListener('submit',async event=>{
     'Bloque: '+match[0]+' · Servicio registrado: '+(match[2]||'No especificado')+
     ' · Área cabecera: '+match[3]+' · Resolución: '+(match[4]||'Sin dato')+
     ' · Fuente: '+m.origen+' · Base '+m.archivo+'. Esto NO determina el operador actual, la portabilidad ni si la línea está activa.','success');
+   showAssociatedBrand(match[1]);
   }else if(data){
    DattaUtil.result('dqResult','Sin asignación para ese bloque','No se encontró una coincidencia en la publicación local de ENACOM ('+data.meta.archivo+'). No significa que la línea no exista ni que esté inactiva.','info');
   }else{

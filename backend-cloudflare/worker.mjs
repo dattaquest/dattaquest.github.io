@@ -18,7 +18,7 @@ function reply(status, data, cors) {
 export default {
  async fetch(request, env) {
   const origin = request.headers.get('Origin') || '';
-  const allowed = String(env.ALLOWED_ORIGIN || 'https://tomiaf98.github.io');
+  const allowed = String(env.ALLOWED_ORIGIN || 'https://dattaquest.github.io');
   const cors = origin === allowed ? {
     'Access-Control-Allow-Origin': allowed,
     'Access-Control-Allow-Methods': 'POST, OPTIONS',

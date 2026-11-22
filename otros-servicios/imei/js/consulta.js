@@ -21,6 +21,19 @@
     container.appendChild(line);
   }
 
+
+  // La fuente complementaria contiene la errata XAIOMI y modelos duplicados.
+  // Normalizamos exclusivamente la presentación; nunca alteramos el TAC.
+  function normalizeDevice(device) {
+    if (!device || typeof device.brand !== 'string') return device;
+    const brand = device.brand.trim();
+    if (!/^(?:XAIOMI|XIAOMI)$/i.test(brand)) return device;
+    let model = String(device.model || 'Sin información').trim()
+      .replace(/\b(?:XAIOMI|XIAOMI)\b/gi, 'Xiaomi')
+      .replace(/^Xiaomi\s*[,;]\s*(?=Xiaomi\b)/i, '');
+    return {...device, brand: 'Xiaomi', model};
+  }
+
   function displayResult(imei, device, blockStatus, blockSource) {
     const box = document.getElementById(resultId);
     box.textContent = '';
@@ -85,7 +98,7 @@
       'Buscando marca y modelo en la base comunitaria TAC...', 'info');
 
     try {
-      const device = await DattaTac.lookup(imei.slice(0, 8));
+      const device = normalizeDevice(await DattaTac.lookup(imei.slice(0, 8)));
       let blockStatus = 'NO VERIFICADO; falta API autorizada de listas negras';
       let blockSource = '';
 
