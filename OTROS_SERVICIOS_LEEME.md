@@ -90,3 +90,14 @@ Atribución: Base Osmocom TAC, © Harald Welte y colaboradores, **CC-BY-SA 3.0**
 3. Subí ambos archivos a tu repositorio. Desde entonces la web busca el TAC en **tu propia copia**. Si esa copia falla, intenta la fuente pública y después la pequeña muestra local.
 
 La copia es una base TAC de identificación de modelos, **NO una base de IMEI bloqueados**. Respetá la licencia CC-BY-SA 3.0 y conservá su atribución.
+
+# ACTUALIZACIÓN v3 — fuentes propias (21/11/2026)
+
+- **Nuevo:** `herramientas/actualizar_enacom.py`, importador verificable de XLS oficial que genera hasta ~300 códigos de área y miles de asignaciones de prestador **original** en archivos locales. Necesita ejecutar la importación real; la publicación no incluye el XLS, que no se pudo descargar en este entorno.
+- **Nuevo:** `.github/workflows/actualizar-enacom.yml` para importar manualmente mediante GitHub Actions proporcionando la URL XLS **directa** de ENACOM.
+- **Nuevo:** `.github/workflows/actualizar-tac.yml` permite actualizar el catálogo comunitario TAC mensualmente y manualmente.
+- **Nuevo:** `otros-servicios/imei/tools/convertir_base_tac.py`, transforma la base SQLite en JSON locales segmentados. Con `local_json:true` el sitio evita el CDN para identificación del modelo por TAC.
+- **Mejorado:** consulta de prestador muestra separados *original* (si fue importada la fuente) y *actual* (solo API autorizada). Código de prefijos anuncia la procedencia cuando fue importada.
+- **Corregido:** normalización de números argentinos con `+54 9`, `011 15` y formatos habituales.
+- **Documentación completa:** `documentacion/FUENTES_Y_PLAN_v3.md`.
+- **Pendiente:** acceso automático a portabilidad, CUIL asignado, radicación y bloqueo IMEI. No se atribuyen datos no verificados a ANSES/DNRPA/ENACOM/GSMA.

@@ -1,1 +1,26 @@
-(function(){'use strict';var codes=[];var loaded=false;fetch('./data/prefijos.json').then(function(r){if(!r.ok)throw Error('Sin datos');return r.json();}).then(function(x){if(!Array.isArray(x))throw Error('Datos inválidos');codes=x;loaded=true;}).catch(function(){DattaUtil.result('dqResult','No se pudo cargar la base local','Revisá que data/prefijos.json esté subido y que abras la página desde GitHub Pages o un servidor web.','error');});document.getElementById('dqForm').addEventListener('submit',function(e){e.preventDefault();if(!loaded){DattaUtil.result('dqResult','Base no disponible','No se pudo cargar el archivo de prefijos.','error');return;}var n=DattaUtil.onlyDigits(document.getElementById('dqValue').value);if(n.startsWith('549')&&n.length>11)n=n.slice(3);else if(n.startsWith('54')&&n.length>10)n=n.slice(2);if(n.startsWith('0'))n=n.slice(1);if(n.length<2){DattaUtil.result('dqResult','Prefijo no válido','Ingresá un código de área o un teléfono argentino.','error');return;}var exact=codes.find(function(x){return x.codigo===n;});var found=exact||codes.filter(function(x){return n.startsWith(x.codigo)&&n.length>x.codigo.length;}).sort(function(a,b){return b.codigo.length-a.codigo.length;})[0];if(found){DattaUtil.result('dqResult','Código '+found.codigo+' · '+found.localidad, 'Provincia/área: '+found.provincia+'. Este es un dato de numeración geográfica; no indica ubicación actual ni prestador de la línea.','success');}else{DattaUtil.result('dqResult','Sin coincidencias en la muestra','Todavía no hay una entrada para ese prefijo en la base local inicial. No significa que el código no exista.','info');}});})();
+/* Prefijos geográficos locales: la publicación completa se genera desde ENACOM. */
+(function(){
+'use strict';
+let dataset=null;
+let fuente=null;
+fetch('./data/fuente.json').then(r=>r.ok?r.json():null).then(x=>{fuente=x;}).catch(()=>{});
+const f=document.getElementById('dqForm');
+fetch('./data/prefijos.json').then(r=>{if(!r.ok)throw Error('sin datos');return r.json();})
+ .then(x=>{if(!Array.isArray(x))throw Error('formato');dataset=x;})
+ .catch(()=>DattaUtil.result('dqResult','No se pudo cargar la base local','Revisá el archivo data/prefijos.json publicado en GitHub Pages.','error'));
+f.addEventListener('submit',event=>{
+ event.preventDefault();
+ if(!dataset){DattaUtil.result('dqResult','Base no disponible','Volvé a intentar cuando cargue el catálogo.','error');return;}
+ let n=DattaUtil.onlyDigits(document.getElementById('dqValue').value);
+ if(n.startsWith('549') && n.length>11)n=n.slice(3);
+ else if(n.startsWith('54')&&n.length>10)n=n.slice(2);
+ if(n.startsWith('0'))n=n.slice(1);
+ if(n.length<2){DattaUtil.result('dqResult','Prefijo incorrecto','Ingresá un código de área argentino.','error');return;}
+ // Código exacto antes que coincidencias de números completos; elegir indicativo más largo.
+ const result=dataset.find(x=>x.codigo===n) || dataset.filter(x=>n.startsWith(x.codigo)&&n.length>x.codigo.length).sort((a,b)=>b.codigo.length-a.codigo.length)[0];
+ if(!result){DattaUtil.result('dqResult','Sin coincidencia en la base disponible', 'Una búsqueda sin coincidencia no demuestra que el número no exista. Revisá la fecha de la publicación.','info');return;}
+ DattaUtil.result('dqResult','Área '+result.codigo+' · '+result.localidad,
+  (result.provincia?'Provincia: '+result.provincia+'. ':'')+
+  'Identifica el área cabecera de numeración, no la ubicación del teléfono ni su prestador actual. '+(fuente?'Fuente: ENACOM, archivo '+fuente.archivo+' (SHA-256 '+fuente.sha256.slice(0,12)+'…).':'Base local inicial: cobertura parcial, pendiente de importación completa de ENACOM.'),'success');
+});
+})();

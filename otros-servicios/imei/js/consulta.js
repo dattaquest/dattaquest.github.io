@@ -21,7 +21,7 @@ f.addEventListener('submit',async function(e){e.preventDefault();
   }else info+=' Estado de bloqueo: NO VERIFICADO; falta API autorizada de listas negras.';
   info+=' Un IMEI válido NO garantiza que el dispositivo sea auténtico ni que funcione en la red.';
   DattaUtil.result('dqResult',found&&found.brand?'Equipo identificado · IMEI válido':'IMEI válido · consulta de modelo',info,'success');
-  DattaUtil.action('dqResult','Información oficial ENACOM sobre IMEI','https://www.enacom.gob.ar/imei');
+  DattaUtil.action('dqResult','Consultar bloqueo en el verificador oficial ENACOM','https://www.enacom.gob.ar/imei');
  }catch(err){DattaUtil.result('dqResult','Formato IMEI válido','No se pudo consultar el catálogo TAC. El estado de bloqueo no fue verificado.','info');}
  finally {btn.disabled=false;}
  });

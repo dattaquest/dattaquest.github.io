@@ -1,22 +1,67 @@
+/* DattaQuest v3 — datos de origen de ENACOM (locales), operador actual por API habilitada. */
 (function(){
 'use strict';
 const f=document.getElementById('dqForm');
-f.addEventListener('submit',async function(e){e.preventDefault();
- const n=DattaUtil.normalizePhone(document.getElementById('dqValue').value);
- if(!/^\d{10}$/.test(n)){DattaUtil.result('dqResult','Número no válido','Ingresá los 10 dígitos nacionales sin 0 ni 15; podés escribir +54 9.','error');return;}
- const official='https://www.enacom.gob.ar/buscador-de-prestadores_p1510';
- if(!DattaApi.enabled()){
-  DattaUtil.result('dqResult','Consulta oficial disponible','Número validado. Para conocer la compañía ACTUAL (incluyendo portabilidad), utilizá el buscador de ENACOM. DattaQuest aún no tiene acceso autorizado a una API de portabilidad; no adivina el operador a partir del prefijo.','info');
-  DattaUtil.action('dqResult','Abrir buscador oficial ENACOM',official);return;
+const official='https://www.enacom.gob.ar/buscador-de-prestadores_p1510';
+let datasetPromise;
+function loadAssignments(){
+ if (!datasetPromise) datasetPromise=fetch('./data/asignaciones.json',{cache:'default'}).then(r=>{
+  if(!r.ok)throw Error('SIN_BASE');return r.json();
+ }).then(x=>{
+  if(!x||!x.meta||!Array.isArray(x.bloques)||!x.bloques.length)throw Error('BASE_INVALIDA');return x;
+ }).catch(err=>{datasetPromise=null;throw err;});
+ return datasetPromise;
+}
+function originalMatch(number, database){
+ let best=null;
+ for(const item of database.bloques){
+  const key=item[0];
+  if(typeof key==='string' && number.startsWith(key) && (!best||key.length>best[0].length))best=item;
+ }
+ return best;
+}
+async function queryCurrent(numero){
+ if(!DattaApi.enabled())return false;
+ try{
+  const x=await DattaApi.request('prestadores',{numero});
+  if(x.verificado===true && typeof x.prestador_actual==='string' && x.prestador_actual.trim()){
+   DattaUtil.result('dqCurrent','Prestador ACTUAL confirmado',
+    x.prestador_actual+' · Fuente: '+(x.fuente||'Integración autorizada')+'.'+
+    (x.portado===true?' El número fue portado.':x.portado===false?' No figura portado en la fuente.':''),'success');
+   return true;
+  }
+ }catch(ignore){}
+ return false;
+}
+f.addEventListener('submit',async event=>{
+ event.preventDefault();
+ const numero=DattaUtil.normalizePhone(document.getElementById('dqValue').value);
+ if(!/^\d{10}$/.test(numero)){
+  DattaUtil.result('dqResult','Número inválido','Ingresá 10 dígitos nacionales, sin el 0 ni el 15.','error');return;
  }
  const btn=f.querySelector('button[type=submit]');btn.disabled=true;
- DattaUtil.result('dqResult','Consultando prestador','Solicitando respuesta a la API configurada...','info');
- try {const x=await DattaApi.request('prestadores',{numero:n});
-  if(x.verificado!==true||typeof x.prestador_actual!=='string'||!x.prestador_actual.trim())throw new Error('API_BAD_RESPONSE');
-  const original=typeof x.prestador_original==='string'?x.prestador_original:'No informado';
-  const traslado=x.portado===true?'Sí':x.portado===false?'No':'No informado';
-  DattaUtil.result('dqResult','Prestador actual: '+x.prestador_actual,'Prestador original: '+original+'. Portado: '+traslado+'. Fuente: '+(x.fuente||'API autorizada')+'.','success');
- }catch(err){DattaUtil.result('dqResult','Consulta no disponible','La API no devolvió datos verificados. Podés consultar directamente en ENACOM.','error');DattaUtil.action('dqResult','Consultar en ENACOM',official);}
- finally{btn.disabled=false;}
+ DattaUtil.result('dqResult','Consultando numeración','Buscando la asignación original en la base local de ENACOM...','info');
+ document.getElementById('dqCurrent').textContent='';
+ try{
+  let data=null;
+  try{data=await loadAssignments();}catch(ignore){}
+  const match=data?originalMatch(numero,data):null;
+  if(match){
+   const m=data.meta;
+   DattaUtil.result('dqResult','Prestador ORIGINAL: '+match[1],
+    'Bloque: '+match[0]+' · Servicio registrado: '+(match[2]||'No especificado')+
+    ' · Área cabecera: '+match[3]+' · Resolución: '+(match[4]||'Sin dato')+
+    ' · Fuente: '+m.origen+' · Base '+m.archivo+'. Esto NO determina el operador actual, la portabilidad ni si la línea está activa.','success');
+  }else if(data){
+   DattaUtil.result('dqResult','Sin asignación para ese bloque','No se encontró una coincidencia en la publicación local de ENACOM ('+data.meta.archivo+'). No significa que la línea no exista ni que esté inactiva.','info');
+  }else{
+   DattaUtil.result('dqResult','Base de asignaciones pendiente','Para consultar el prestador original desde DattaQuest, importá el archivo oficial ENACOM con herramientas/actualizar_enacom.py.','info');
+  }
+  if(!await queryCurrent(numero)){
+   DattaUtil.result('dqCurrent','Prestador ACTUAL: no verificado',
+    'La portabilidad solo se puede verificar en la consulta oficial o con una API habilitada. No deducimos la compañía actual a partir del bloque.','info');
+   DattaUtil.action('dqCurrent','Consultar prestador actual en ENACOM',official);
+  }
+ }finally{btn.disabled=false;}
 });
 })();

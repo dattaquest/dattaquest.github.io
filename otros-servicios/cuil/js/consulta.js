@@ -4,7 +4,7 @@ const f=document.getElementById('dqForm');
 f.addEventListener('submit',async function(e){e.preventDefault();
  const d=DattaUtil.onlyDigits(document.getElementById('dqValue').value);
  if(!/^\d{7,8}$/.test(d)){DattaUtil.result('dqResult','DNI no válido','Ingresá un DNI de 7 u 8 dígitos.','error');return;}
- const official='https://www.argentina.gob.ar/servicio/solicitar-constancia-de-cuil';
+ const official='https://www.argentina.gob.ar/descarga-constancia-cuil';
  if(!DattaApi.enabled()){DattaUtil.result('dqResult','Consultá tu CUIL en ANSES','El DNI solo no permite confirmar un CUIL asignado. Para obtener una constancia real completá los datos personales requeridos por ANSES. No transmitimos ni guardamos tu DNI.','info');DattaUtil.action('dqResult','Obtener constancia oficial de CUIL',official);return;}
  const btn=f.querySelector('button[type=submit]');btn.disabled=true;DattaUtil.result('dqResult','Consultando','Solicitando verificación a la API autorizada...','info');
  try {const x=await DattaApi.request('cuil',{dni:d});

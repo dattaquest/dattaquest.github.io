@@ -1,37 +1,47 @@
-/* Consulta PRIVADA del modelo: solo se lee TAC localmente en una BD comunitaria.
- * Datos: Osmocom CC-BY-SA 3.0, © Harald Welte y colaboradores.
- * Snapshot mantenido en github.com/G33l0/imei-generator/data/tac.sqlite
- * No se transmite el IMEI a ese repositorio: se descarga una base igual para todos.
+/* DattaQuest v3 — primero TAC JSON propios; fallback a la copia pública SQLite.
+ * Datos: Osmocom TAC CC BY-SA 3.0 (© Harald Welte y colaboradores).
+ * NUNCA transmite IMEI completo a un proveedor de identificación de modelos.
+ * Las respuestas TAC NO muestran blacklist, operador ni activación.
  */
 (function(){
 'use strict';
 const CDN='https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.13.0/';
-const DB_URL='https://raw.githubusercontent.com/G33l0/imei-generator/main/data/tac.sqlite';
-const fallbacks={
- '35104463':['Apple','iPhone 13'],
- '35292511':['Apple','iPhone 11 (A2221)'],
- '35657310':['Apple','iPhone 11 (A2221)'],
- '35727609':['Apple','iPhone XS Max 256GB']
-};
-let dbPromise;
+const REMOTE='https://raw.githubusercontent.com/G33l0/imei-generator/main/data/tac.sqlite';
+let cfgPromise=null, dbPromise=null;
+const localShardPromises=new Map();
+function config(){
+ if(!cfgPromise)cfgPromise=fetch('../data/config.json',{cache:'default'})
+  .then(r=>r.ok?r.json():{}).catch(()=>({}));
+ return cfgPromise;
+}
+function lookupLocal(tac){
+ const prefix=tac.slice(0,2);
+ if(!localShardPromises.has(prefix))localShardPromises.set(prefix,
+  fetch('../data/tac/'+prefix+'.json',{cache:'default'})
+   .then(r=>{if(!r.ok)throw Error('Local '+r.status);return r.json();}));
+ return localShardPromises.get(prefix).then(data=>{
+  const item=data[tac];
+  return item?{brand:item[0],model:item[1],source:'Osmocom TAC (copia local DattaQuest)'}:null;
+ });
+}
 function loadScript(src){return new Promise((resolve,reject)=>{
- const script=document.createElement('script');script.src=src;script.async=true;script.onload=resolve;script.onerror=()=>reject(Error('Script inaccesible'));document.head.appendChild(script);
+ const script=document.createElement('script');script.src=src;script.async=true;
+ script.onload=resolve;script.onerror=()=>reject(Error('No se pudo cargar motor SQLite'));
+ document.head.appendChild(script);
 });}
-async function loadDB(){
- if(!dbPromise) dbPromise=(async()=>{
+async function loadDb(){
+ if(!dbPromise)dbPromise=(async()=>{
   if(!window.initSqlJs)await loadScript(CDN+'sql-wasm.js');
   const SQL=await window.initSqlJs({locateFile:f=>CDN+f});
-  const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),14000);
-  let response;try{
-    let hasLocal=false;
-    try{const meta=await fetch('../data/config.json',{signal:ctrl.signal,cache:'no-store'});
-      if(meta.ok){const config=await meta.json();hasLocal=config.local_db===true;}}catch(ignore){}
-    if(hasLocal){try{response=await fetch('../data/tac.sqlite',{signal:ctrl.signal,cache:'force-cache'});}catch(ignore){}}
-    if(!response||!response.ok)response=await fetch(DB_URL,{signal:ctrl.signal,cache:'force-cache'});
-  }finally{clearTimeout(timer);}
-  if(!response.ok)throw Error('Datos no accesibles');
+  const conf=await config();
+  let response;
+  if(conf.local_db===true){
+   try{response=await fetch('../data/tac.sqlite',{cache:'force-cache'});}catch(ignore){}
+  }
+  if(!response||!response.ok)response=await fetch(REMOTE,{cache:'force-cache'});
+  if(!response.ok)throw Error('No se pudo obtener base TAC');
   const data=new Uint8Array(await response.arrayBuffer());
-  if(data.length<10000||data.length>15000000)throw Error('Base inválida');
+  if(data.length<10000||data.length>15000000)throw Error('Base TAC fuera de tamaño permitido');
   return new SQL.Database(data);
  })().catch(err=>{dbPromise=null;throw err;});
  return dbPromise;
@@ -39,10 +49,20 @@ async function loadDB(){
 window.DattaTac={
  async lookup(tac){
   if(!/^\d{8}$/.test(tac))return null;
-  try {const db=await loadDB();const rows=db.exec('SELECT brand, model, aka FROM tac WHERE tac = ? LIMIT 1',[tac]);
-   if(rows.length&&rows[0].values.length){let v=rows[0].values[0];return {brand:v[0],model:v[1]||v[2],source:'Osmocom (22.000+ TAC, base comunitaria)'};}
-  }catch(err){if(fallbacks[tac])return{brand:fallbacks[tac][0],model:fallbacks[tac][1],source:'Osmocom (muestra local)'};return{unavailable:true};}
-  return fallbacks[tac]?{brand:fallbacks[tac][0],model:fallbacks[tac][1],source:'Osmocom (muestra local)'}:null;
+  const cfg=await config();
+  if(cfg.local_json===true){
+   try{return await lookupLocal(tac);}catch(err){return {unavailable:true};}
+  }
+  // Solo mientras la copia local aún no fue preparada: alternativa comunitaria.
+  try{
+   const db=await loadDb();
+   const rows=db.exec('SELECT brand,model,aka FROM tac WHERE tac = ? LIMIT 1',[tac]);
+   if(rows.length && rows[0].values.length){
+    const v=rows[0].values[0];
+    return {brand:v[0],model:v[1]||v[2]||'Sin modelo',source:'Osmocom TAC (catálogo comunitario externo)'};
+   }
+   return null;
+  }catch(err){return {unavailable:true};}
  }
 };
 })();
