@@ -1,1 +1,8 @@
-{"local_db":false}
+{
+  "local_json": true,
+  "local_db": true,
+  "registros": 22524,
+  "sha256": "1dcd5ea251e2e17e4a18fab406ae6c2a2d098cc91164443e8e18cd419153116b",
+  "fuente": "Osmocom TAC — copia local, CC BY-SA 3.0",
+  "generado_utc": "2026-11-22T03:15:38+00:00"
+}
