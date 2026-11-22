@@ -1,0 +1,45 @@
+name: Ampliar catalogo IMEI TAC
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '21 4 10 * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dattaquest-tac-extra
+  cancel-in-progress: false
+
+jobs:
+  importar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Descargar y validar TAC adicionales
+        run: python otros-servicios/imei/tools/ampliar_tac.py
+      - name: Validar archivos generados
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path('otros-servicios/imei/data/tac-ampliado')
+          meta=json.loads((root/'meta.json').read_text(encoding='utf-8'))
+          parts=list(root.glob('[0-9][0-9].json'))
+          count=sum(len(json.loads(p.read_text(encoding='utf-8'))) for p in parts)
+          assert count==meta['registros'] and count>=100000
+          print('Catálogo validado:',count,'TAC en',len(parts),'fragmentos')
+          PY
+      - name: Publicar datos en GitHub
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A otros-servicios/imei/data/tac-ampliado/
+          if ! git diff --cached --quiet; then
+            git commit -m 'Datos: ampliar catálogo comunitario TAC'
+            git push
+          fi
