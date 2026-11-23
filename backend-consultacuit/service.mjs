@@ -73,10 +73,12 @@ export function createConsultaCuitService({fetchImpl = (...args) => fetch(...arg
     if (path === '/api/status' && request.method === 'GET') {
       try {
         const response = await fetchImpl('https://consultacuit.fluxorhub.com/v1/health', {
-          headers: {Accept: 'application/json'}, redirect: 'error', signal: AbortSignal.timeout(8000),
+          // Workers admite "manual"; una redirección nunca se sigue.
+          headers: {Accept: 'application/json'}, redirect: 'manual', signal: AbortSignal.timeout(8000),
         });
+        if (!response.ok) throw error('servicio_no_disponible');
         const health = await response.json();
-        if (!response.ok || health?.ok !== true) throw error('servicio_no_disponible');
+        if (health?.ok !== true) throw error('servicio_no_disponible');
         return json(200, {version: 10, proveedor: 'ConsultaCUIT', servicios: {cuil: true},
           consultaPersonalVerificada: false,
           fechaPadron: /^\d{4}-\d{2}-\d{2}$/.test(health.padron_snapshot_date || '') ? health.padron_snapshot_date : null}, cors);

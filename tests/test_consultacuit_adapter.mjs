@@ -70,7 +70,7 @@ test('devuelve sólo CUIT confirmado y metadatos permitidos tras comprobar todos
   assert.deepEqual(calls.map(({ url }) => url), IDS.map(id => `https://consultacuit.fluxorhub.com/v1/cuit/${id}`));
   for (const { init } of calls) {
     assert.equal(init.method, 'GET');
-    assert.equal(init.redirect, 'error');
+    assert.equal(init.redirect, 'manual');
     assert.equal(init.credentials, 'omit');
     assert.equal(init.cache, 'no-store');
     assert.deepEqual(init.headers, { Accept: 'application/json' });
@@ -215,6 +215,20 @@ test('rechaza contenido malformado, MIME incorrecto y redirecciones', async () =
     const { run } = scenario({ [IDS[0]]: response });
     const expected = (await response()).status === 201 ? 'servicio_no_disponible' : 'respuesta_no_verificada';
     await rejectsCode(run(), expected, expected === 'servicio_no_disponible' ? 503 : 502);
+  }
+});
+
+test('rechaza todos los redirects HTTP sin leer el cuerpo ni seguir Location', async () => {
+  for (const status of [301, 302, 303, 307, 308]) {
+    const { run, calls } = scenario({ [IDS[0]]: () => ({
+      ok: false, status,
+      headers: new Headers({ Location: 'https://other.example.invalid/redirected' }),
+      json: async () => assert.fail('No se debe leer un cuerpo de redirección'),
+    }) });
+    await rejectsCode(run(), 'servicio_no_disponible', 503);
+    assert.equal(calls.length, IDS.length);
+    assert.deepEqual(calls.map(({ url }) => url), IDS.map(id => `https://consultacuit.fluxorhub.com/v1/cuit/${id}`));
+    assert.ok(calls.every(({ init }) => init.redirect === 'manual'));
   }
 });
 

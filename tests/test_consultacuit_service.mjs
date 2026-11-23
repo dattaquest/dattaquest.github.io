@@ -70,8 +70,9 @@ test('el limitador no consulta tras exceder la ventana y se recupera en la sigui
 
 test('status sólo comprueba health, no acredita una consulta de DNI y no filtra identificadores', async () => {
   const calls = [];
-  const service = createConsultaCuitService({fetchImpl: async url => {
+  const service = createConsultaCuitService({fetchImpl: async (url, options) => {
     calls.push(url);
+    assert.equal(options.redirect, 'manual');
     return Response.json({ok: true, padron_snapshot_date: '2026-10-10'});
   }, lookup: async () => { assert.fail('No debe consultar'); }});
   const response = await service(new Request('https://conector.example/api/status', {headers: {Origin: origin}}));
@@ -81,4 +82,20 @@ test('status sólo comprueba health, no acredita una consulta de DNI y no filtra
   assert.equal(data.consultaPersonalVerificada, false);
   assert.equal(data.fechaPadron, '2026-10-10');
   assert.deepEqual(calls, ['https://consultacuit.fluxorhub.com/v1/health']);
+});
+
+test('status rechaza redirecciones sin seguir el destino ni anunciar disponibilidad', async () => {
+  for (const status of [301, 302, 303, 307, 308]) {
+    let calls = 0;
+    const service = createConsultaCuitService({fetchImpl: async (url, options) => {
+      calls++;
+      assert.equal(url, 'https://consultacuit.fluxorhub.com/v1/health');
+      assert.equal(options.redirect, 'manual');
+      return Response.json({ok: true}, {status, headers: {Location: 'https://ajeno.example'}});
+    }});
+    const response = await service(new Request('https://conector.example/api/status'));
+    assert.equal(response.status, 503);
+    assert.deepEqual(await response.json(), {error: 'servicio_no_disponible', servicios: {cuil: false}});
+    assert.equal(calls, 1);
+  }
 });

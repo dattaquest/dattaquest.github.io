@@ -143,7 +143,9 @@ export async function consultarCuitConsultaCuit({
     let response;
     try {
       response = await fetchImpl(API_BASE + candidate, {
-        method: 'GET', redirect: 'error', credentials: 'omit', cache: 'no-store',
+        // Workers no implementa redirect:error. manual + rechazo de 3xx
+        // mantiene la solicitud dentro del origen fijo sin seguir Location.
+        method: 'GET', redirect: 'manual', credentials: 'omit', cache: 'no-store',
         headers: { Accept: 'application/json' }, signal: controller.signal,
       });
     } catch {
