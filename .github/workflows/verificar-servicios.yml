@@ -5,6 +5,7 @@ on:
     paths:
       - 'otros-servicios/**'
       - 'backend-cloudflare/**'
+      - 'backend-consultacuit/**'
       - 'herramientas/**'
       - 'tests/**'
       - 'package*.json'
@@ -15,6 +16,7 @@ on:
     paths:
       - 'otros-servicios/**'
       - 'backend-cloudflare/**'
+      - 'backend-consultacuit/**'
       - 'herramientas/**'
       - 'tests/**'
       - 'package*.json'
@@ -60,7 +62,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: dattaquest-v9-capturas
+          name: dattaquest-v10-capturas
           path: test-results/*.png
           if-no-files-found: ignore
           retention-days: 14

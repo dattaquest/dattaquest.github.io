@@ -1,10 +1,20 @@
-# DattaQuest · Otros servicios · v9
+# DattaQuest · Otros servicios · v10
 
 Sitio: https://dattaquest.github.io/otros-servicios/index.html
 
 Repositorio: `dattaquest/dattaquest.github.io`.
 
-**CUIL y radicación todavía no están activados ni probados en producción en esta entrega.** La v8 incorporó código de proveedor, pero dejó la URL de API vacía y no desplegó un servidor con credenciales. Publicar los archivos de GitHub Pages no completa esa activación.
+**CUIL/CUIT utiliza ahora ConsultaCUIT, sin credenciales ni suscripción de ese proveedor.** Se conecta mediante su endpoint exclusivo en `otros-servicios/cuil/js/config.js`. El conector de servidor resuelve CORS y devuelve sólo una clave verificada. La comprobación de estado y las pruebas sintéticas no sustituyen una consulta final con un DNI propio.
+
+Radicación conserva el estado anterior: su backend comercial sigue pendiente de configuración. Esta entrega no activa Chasis ni cambia ese formulario.
+
+## Qué cambia en v10
+
+- DNI y un botón para consultar CUIT o CUIL personal, con validación de documento, prefijo y dígito verificador.
+- Nueva API gratuita de ConsultaCUIT a través de un conector propio, sin claves de ARCA o AFIP SDK.
+- Nunca se muestran los candidatos calculados como claves asignadas. Varias coincidencias, fallas parciales y ausencia de datos tienen resultados distintos.
+- Se muestra la fecha del padrón cuando el proveedor la informa. Un resultado vacío no significa que el CUIL no exista.
+- Guía de código, despliegue y límites: [backend-consultacuit/LEEME.md](backend-consultacuit/LEEME.md).
 
 ## Qué cambia en v9
 
@@ -22,13 +32,15 @@ Repositorio: `dattaquest/dattaquest.github.io`.
 | Prestadores | Asignación original del bloque desde archivos locales. Marca comercial asociada cuando se reconoce. El operador actual sólo se muestra si una API habilitada lo confirma. |
 | Prefijos | Consulta de códigos y localidades desde los archivos locales. |
 | Dólar | Cotizaciones mediante DolarAPI; conserva caché local y muestra la fecha de los datos. |
-| CUIL | Ruta integrada con ARCA A13 mediante Afip SDK. Requiere credenciales de producción autorizadas y despliegue. |
+| CUIL / CUIT | ConsultaCUIT, mediante conector propio y sin credenciales del proveedor. Cobertura tributaria parcial; no es una constancia de ANSES. |
 | Radicación | Ruta integrada con la API comercial de Chasis. Requiere cuenta, key con permisos, cupos elegidos y despliegue. |
 | IMEI | Validación del formato y dígito; marca/modelo por TAC en catálogos locales. El bloqueo sigue siendo un conector opcional y no se deduce del TAC. |
 
 Los seis servicios presentan etiquetas y valores por líneas. Las fuentes y los nombres de bases no aparecen dentro de los resultados. La atribución de licencia del catálogo TAC se conserva fuera de la consulta.
 
-## Activar CUIL y radicación
+## Backend anterior de Afip SDK y Chasis (opcional)
+
+**Estos pasos no son necesarios para la nueva consulta de CUIL/CUIT.** El archivo específico `cuil/js/config.js` tiene prioridad y no lo sobrescribe el configurador antiguo.
 
 La guía completa está en [backend-cloudflare/LEEME.md](backend-cloudflare/LEEME.md).
 
@@ -48,6 +60,7 @@ El workflow despliega el Worker, guarda sus secretos, configura la URL efectiva,
 - `otros-servicios/comun/`: presentación, navegación y cliente API compartidos.
 - `otros-servicios/<servicio>/`: HTML, estilos, lógica y archivos de datos de cada servicio.
 - `backend-cloudflare/`: rutas, adaptadores de proveedor y controles de consumo.
+- `backend-consultacuit/`: conector gratuito específico de CUIL/CUIT y su documentación.
 - `herramientas/verificar_accesos.mjs`: preflight de activación.
 - `herramientas/configurar_api.mjs`: comprueba el Worker y guarda su URL pública.
 - `.github/workflows/activar-consultas.yml`: activación manual con secretos y cupos.
@@ -80,4 +93,4 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Las APIs de las pruebas están simuladas: estos comandos no buscan documentos ni patentes ni acreditan que las cuentas de producción estén habilitadas. `npm test` incluye las pruebas de activación. Las capturas se generan en `test-results/` y también se guardan como artefacto `dattaquest-v9-capturas` del workflow de verificación.
+Las APIs de las pruebas están simuladas: estos comandos no buscan documentos ni patentes ni acreditan que las cuentas de producción estén habilitadas. `npm test` incluye ConsultaCUIT, su conector, endpoints independientes y las pruebas de activación anteriores. Las capturas se generan en `test-results/` y se guardan como artefacto `dattaquest-v10-capturas` del workflow de verificación.

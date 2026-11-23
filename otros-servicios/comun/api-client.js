@@ -3,14 +3,19 @@
  'use strict';
  const base=String(window.DATTA_API_BASE||'').trim().replace(/\/+$/,'');
  const services=Array.isArray(window.DATTA_API_SERVICES)?window.DATTA_API_SERVICES:['cuil','radicacion'];
+ const endpoints=window.DATTA_API_ENDPOINTS&&typeof window.DATTA_API_ENDPOINTS==='object'?window.DATTA_API_ENDPOINTS:{};
  const fail=(code,status)=>Object.assign(new Error(code),{code,status:status||0});
  let busy=false;
+ function endpoint(route){
+   if(Object.hasOwn(endpoints,route))return typeof endpoints[route]==='string'?endpoints[route].trim():'';
+   return services.includes(route)&&base?base+'/'+route:'';
+ }
  function enabled(route){
    try {
-     const url=new URL(base);
+     const url=new URL(route?endpoint(route):base);
      const local=['localhost','127.0.0.1'].includes(location.hostname)&&['localhost','127.0.0.1'].includes(url.hostname);
      return !url.username&&!url.password&&!url.search&&!url.hash&&
-       (url.protocol==='https:'||(local&&url.protocol==='http:'))&&(!route||services.includes(route));
+       (url.protocol==='https:'||(local&&url.protocol==='http:'));
    }catch(e){return false;}
  }
  async function request(route,payload){
@@ -23,7 +28,7 @@
      // Permite rechazar dobles envíos sin mostrar desafíos ni pedir otro dato.
      const requestId=crypto.randomUUID();
      const controller=new AbortController();timeout=setTimeout(()=>controller.abort(),25000);
-     const res=await fetch(base+'/'+route,{method:'POST',mode:'cors',credentials:'omit',cache:'no-store',redirect:'error',
+     const res=await fetch(endpoint(route),{method:'POST',mode:'cors',credentials:'omit',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',
        headers:{'Content-Type':'application/json','Accept':'application/json'},
        body:JSON.stringify({...payload,requestId}),signal:controller.signal});
      let out;
