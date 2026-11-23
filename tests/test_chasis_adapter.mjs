@@ -7,6 +7,7 @@ const base = () => ({
   object: 'consulta',
   patente: 'AB123CD',
   dominio: 'AB123CD',
+  tipo: 'automotor',
   registro: {
     codigo: 1234,
     nombre: 'REGISTRO DE PRUEBA',
@@ -71,6 +72,7 @@ test('envía un solo POST canónico y devuelve exclusivamente radicación', asyn
   assert.deepEqual(result, {
     verificado: true,
     patente: 'AB123CD',
+    tipoVehiculo: 'Automotor',
     registro: 'REGISTRO DE PRUEBA',
     codigoRegistro: '1234',
     direccion: 'DIRECCION DE PRUEBA 123',
@@ -87,6 +89,13 @@ test('acepta formato anterior y dominio como identidad alternativa', async () =>
   const raw = { ...base(), patente: undefined, dominio: 'abc123' };
   const result = await consultarRadicacionChasis({ ...options(raw), patente: 'abc 123' });
   assert.equal(result.patente, 'ABC123');
+});
+
+test('presenta el tipo documentado del vehículo y conserva null cuando no está disponible', async () => {
+  for (const [tipo, expected] of [['automotor', 'Automotor'], ['moto', 'Motovehículo'], [null, null], [undefined, null]]) {
+    const result = await consultarRadicacionChasis(options({ ...base(), tipo }));
+    assert.equal(result.tipoVehiculo, expected);
+  }
 });
 
 test('acepta cada campo de radicación por separado y conserva null', async t => {
@@ -163,6 +172,7 @@ test('rechaza respuestas con identidad o estructura incompatibles', async t => {
     { ...base(), registro: { codigo: 1.5 } },
     { ...base(), registro: { codigo: '12x' } },
     { ...base(), reutilizada: 'true' },
+    ...['', 'AUTOMOTOR', 'camion', 123, true, {}, [], ['automotor']].map(tipo => ({ ...base(), tipo })),
   ];
   for (let i = 0; i < invalid.length; i++) {
     await t.test(`caso ${i + 1}`, async () => {

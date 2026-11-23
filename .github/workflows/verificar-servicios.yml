@@ -9,14 +9,17 @@ on:
       - 'tests/**'
       - 'package*.json'
       - '.github/workflows/verificar-servicios.yml'
+      - '.github/workflows/activar-consultas.yml'
   push:
     branches: [main]
     paths:
       - 'otros-servicios/**'
       - 'backend-cloudflare/**'
+      - 'herramientas/**'
       - 'tests/**'
       - 'package*.json'
       - '.github/workflows/verificar-servicios.yml'
+      - '.github/workflows/activar-consultas.yml'
 
 permissions:
   contents: read
@@ -57,7 +60,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: dattaquest-v8-capturas
+          name: dattaquest-v9-capturas
           path: test-results/*.png
           if-no-files-found: ignore
           retention-days: 14

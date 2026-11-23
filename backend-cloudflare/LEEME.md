@@ -1,166 +1,139 @@
-# DattaQuest v8 · API de CUIL y radicación
+# DattaQuest v9 · Consultas dentro de la página
 
-Esta versión conecta las rutas del Worker a dos contratos de proveedor concretos. **El código está implementado; la activación requiere las cuentas, autorizaciones y secretos del titular del sitio.** El repositorio no contiene credenciales ni una URL de Worker inventada.
+**Estado de esta entrega: las consultas de producción no están activadas ni se probaron con documentos o patentes.** El código de integración está preparado; faltan las cuentas autorizadas, sus credenciales y el despliegue. Fusionar el PR, por sí solo, no habilita el acceso a los datos.
 
-| Ruta | Integración | Requisito de producción |
+Los formularios piden solamente **DNI + Consultar CUIL** o **patente + Consultar patente**. El resultado se presenta dentro de DattaQuest, sin selección de sexo, CAPTCHA, código verificador ni enlaces de salida a ANSES/DNRPA. Si el servicio no está habilitado o falla, se informa esa situación sin fabricar un resultado.
+
+## Integraciones
+
+| Ruta | Proveedor | Acceso necesario |
 | --- | --- | --- |
-| `POST /api/cuil` | ARCA Padrón Alcance 13 a través de la API REST de Afip SDK | Token Afip SDK, CUIT representada, certificado y clave privada de producción, certificado autorizado para `ws_sr_padron_a13` |
-| `POST /api/radicacion` | API comercial de Chasis, `POST /api/v1/consultas` | Cuenta con acceso a consultas, clave con permisos y condiciones comerciales que permitan el uso del sitio |
+| `POST /api/cuil` | ARCA Padrón Alcance 13 mediante Afip SDK | Access token, CUIT representada y certificado con clave privada de producción autorizado para `ws_sr_padron_a13` |
+| `POST /api/radicacion` | API comercial de Chasis, `POST /api/v1/consultas` | Cuenta habilitada, API key con permisos de consulta y acceso contratado para el uso de DattaQuest |
 
-Chasis no es una API oficial de DNRPA. La vía de web services oficial exige un convenio y credenciales institucionales; la documentación pública no proporciona un endpoint abierto que podamos activar sin ese acceso. Afip SDK también es un intermediario comercial: la autorización de A13 se tramita en ARCA.
-
-## 1. Obtener los accesos
+Afip SDK es un intermediario comercial. Chasis también es un proveedor comercial, no una API oficial de DNRPA. La integración no utiliza ni omite el código verificador del formulario público de DNRPA.
 
 ### CUIL
 
-1. Obtener un access token en la cuenta de [Afip SDK](https://afipsdk.com/).
-2. Generar certificado y clave privada de producción para la CUIT que operará el servicio.
-3. Autorizar el certificado para **Padrón Alcance 13 (`ws_sr_padron_a13`)** en el Administrador de Relaciones de ARCA. La CUIT representada debe estar autorizada.
-4. Conservar certificado y clave en PEM. No usar la CUIT de ejemplo ni credenciales de homologación.
+El servidor obtiene un ticket de ARCA mediante `/afip/auth`, busca con `getIdPersonaListByDocumento` y confirma el detalle mediante `getPersona`, siempre en producción. Publica un único resultado de tipo **CUIL**, con documento e identificador coherentes y dígito verificador válido. No calcula un número para presentarlo como asignado. Varias claves producen `dni_ambiguo`; CUIT/CDI no se presentan como CUIL.
 
-El adaptador hace `/afip/auth` y luego `getIdPersonaListByDocumento` y `getPersona`, siempre con `environment: "prod"`. Publica sólo un resultado único de tipo **CUIL**, con documento y dígito verificador coherentes. Una clave CUIT/CDI no se presenta como CUIL. Varias claves producen `dni_ambiguo`; la falta de resultado en A13 no demuestra ausencia de CUIL en ANSES.
+El certificado y la clave deben pertenecer a una cuenta autorizada para usar A13. Se envían desde el Worker a la API de Afip SDK conforme a su contrato; nunca se incluyen en el navegador ni en el repositorio.
 
 ### Radicación
 
-Crear una API key en el panel empresarial de [Chasis](https://www.chasis.com.ar/empresas/panel). Confirmar que el acceso contratado permite mostrar los resultados a los usuarios de DattaQuest. La consulta básica puede descontar créditos y reutiliza resultados durante 15 días; se conserva `consultadoEn` del proveedor. Este proyecto no pide informes de dominio, no compra créditos ni activa facturación.
+Se solicita sólo la consulta básica, sin informe de dominio ni datos de titulares. La respuesta puede contener campos ausentes; la interfaz muestra “Sin información” donde corresponda. Conserva la fecha de consulta original del proveedor. Chasis puede reutilizar resultados durante 15 días y descontar créditos por nuevas consultas.
 
-Los cupos del Worker cuentan **intentos**, incluyendo respuestas almacenadas por Chasis y fallos, para establecer un límite conservador de consumo. No son una estimación del importe facturado; consultar las condiciones de la cuenta, especialmente si tiene modalidad a demanda.
+La interfaz también admite tipo de vehículo, código postal y teléfono del registro si el servidor los proporciona. No inventa esos campos cuando no están disponibles.
 
-## 2. Preparar Cloudflare y Turnstile
+## Activación desde GitHub Actions
 
-Desde esta carpeta, con Node.js 22 o posterior:
+### 1. Cargar los siete secretos
+
+En el repositorio `dattaquest/dattaquest.github.io`, abrir **Settings → Secrets and variables → Actions → New repository secret** y guardar:
+
+| Nombre exacto | Valor |
+| --- | --- |
+| `CLOUDFLARE_API_TOKEN` | Token de la cuenta con permisos para desplegar Workers |
+| `CLOUDFLARE_ACCOUNT_ID` | Identificador de esa cuenta Cloudflare |
+| `AFIPSDK_ACCESS_TOKEN` | Access token de la cuenta Afip SDK |
+| `ARCA_CUIT_REPRESENTADA` | CUIT de 11 dígitos autorizada para la integración |
+| `ARCA_CERT` | Certificado completo de producción en PEM |
+| `ARCA_KEY` | Clave privada completa de ese certificado en PEM |
+| `CHASIS_API_KEY` | API key con permiso completo para `POST /consultas` y acceso a las consultas contratadas |
+
+Los PEM deben conservar sus saltos de línea. No usar las credenciales de ejemplo o de homologación. Los secretos se cargan en GitHub; no se pegan en archivos públicos, issues ni conversaciones.
+
+### 2. Elegir los cupos y ejecutar
+
+Con esta versión ya fusionada en `main`:
+
+1. Abrir **Actions → Activar consultas DattaQuest → Run workflow**.
+2. Seleccionar la rama **main**.
+3. Completar `cuil_diarias` y `radicacion_diarias` con los máximos diarios elegidos, de **1 a 100000**.
+4. Ejecutar y revisar el resultado del workflow.
+
+No hay un presupuesto ni un cupo de pago aceptado por defecto. El archivo `wrangler.toml` comienza con límites `0`, que mantienen las rutas cerradas. Elegir un cupo de consultas no expresa un importe monetario: los precios y créditos dependen del proveedor. Cada búsqueda de CUIL puede hacer hasta tres solicitudes HTTP a Afip SDK.
+
+Los cupos se reservan antes de llamar al proveedor y cuentan los intentos, incluidos fallos y respuestas reutilizadas. Se reinician a medianoche de **Argentina**. Esto establece un límite conservador; no se compran créditos ni se activa facturación mediante el workflow.
+
+### 3. Qué hace el workflow
+
+`activar-consultas.yml`:
+
+1. Ejecuta `herramientas/verificar_accesos.mjs` y comprueba que existan los siete secretos y los cupos sean válidos.
+2. Solicita un ticket A13 vigente a Afip SDK y consulta `GET /usage` de Chasis. Exige consultas disponibles o modalidad a demanda ya contratada. No consulta ningún DNI ni patente y no imprime las respuestas privadas.
+3. Ejecuta las pruebas del proyecto, despliega el Worker y carga sus cinco secretos de proveedor.
+4. Comprueba la configuración desplegada mediante `GET /api/status` y exige un Worker v9 con ambos servicios configurados.
+5. Guarda la URL efectiva en `otros-servicios/comun/api-config.js`, conserva los cupos en `wrangler.toml` y publica esos cambios en `main`.
+6. Solicita una nueva compilación de GitHub Pages y deja un resumen con la dirección del servidor.
+
+**Límites de la comprobación:** el preflight comprueba autenticación de Afip SDK/ARCA y Chasis y la disponibilidad declarada de consultas en ese momento. Si no quedan consultas, sólo continúa cuando Chasis devuelve `aDemanda: true`; esa modalidad debe estar contratada previamente y puede generar cargos. El script no la activa. El acceso a `/usage` no prueba que la key tenga el permiso completo necesario para `POST /consultas`. La autenticación de Cloudflare se comprueba al desplegar. `/api/status` informa versión, configuración y protecciones; no confirma una consulta exitosa ni la vigencia de todos los permisos.
+
+La activación debe cerrarse comprobando desde la página un documento propio y una patente autorizada. Esa consulta puede consumir créditos. Hasta entonces, no debe describirse el servicio como probado en producción.
+
+Si el Worker ya se desplegó y configuró por otra vía, la conexión pública puede generarse desde la raíz del repositorio con:
 
 ```sh
-npm ci
-npx wrangler login
+node herramientas/configurar_api.mjs https://TU-WORKER.workers.dev/api
 ```
 
-En Cloudflare, crear un widget **Turnstile Managed** para el dominio `dattaquest.github.io`. La **sitekey** es pública; la **secret key** es privada. El cliente carga el widget al consultar y el Worker valida resultado, hostname y acción. No se usa CORS como sustituto de esa verificación.
+El script sólo comprueba `/api/status` y rechaza servidores v8; no carga credenciales ni despliega el servidor. El cambio generado debe publicarse en GitHub Pages.
 
-En `wrangler.toml`, asignar los cupos diarios elegidos para `CUIL_DAILY_LIMIT` y `RADICACION_DAILY_LIMIT`. Su valor inicial `0` mantiene cerradas las rutas. Se reinician al cambiar de día en Argentina. Cada consulta CUIL puede requerir hasta tres solicitudes HTTP al proveedor.
+## Contrato del navegador
 
-Ejecutar el primer despliegue, todavía sin credenciales:
-
-```sh
-npm run check
-npm run deploy
-```
-
-Wrangler crea el Worker, el límite de 10 solicitudes por minuto e IP y el objeto de cupos globales. Si la cuenta ya usa el namespace de rate limiting `1008` para otro servicio, elegir un entero libre en `wrangler.toml` para no compartir contadores.
-
-## 3. Guardar secretos en el Worker
-
-Cargar desde el administrador de secretos de Cloudflare o con estos comandos interactivos:
-
-```sh
-npx wrangler secret put TURNSTILE_SECRET_KEY
-npx wrangler secret put AFIPSDK_ACCESS_TOKEN
-npx wrangler secret put ARCA_CUIT_REPRESENTADA
-npx wrangler secret put CHASIS_API_KEY
-```
-
-Para los PEM, usar archivos locales fuera del repositorio:
-
-```sh
-npx wrangler secret put ARCA_CERT < /ruta/privada/certificado.pem
-npx wrangler secret put ARCA_KEY < /ruta/privada/clave.pem
-```
-
-La clave privada se envía desde el Worker al endpoint de autenticación de Afip SDK, según su contrato. Debe usarse una cuenta y un certificado cuya delegación a ese intermediario esté autorizada. Nunca pegar estos valores en el JavaScript público, un commit, un issue o una conversación.
-
-Si se cambiaron cupos o variables del archivo, volver a ejecutar `npm run deploy` para aplicarlos. Los secretos se conservan al desplegar.
-
-## 4. Conectar GitHub Pages al Worker
-
-Copiar la URL que devuelve Wrangler y, desde la raíz del repositorio, ejecutar:
-
-```sh
-node herramientas/configurar_api.mjs https://TU-WORKER.workers.dev/api TU_SITEKEY_PUBLICA
-```
-
-El script comprueba `GET /api/status` antes de escribir `otros-servicios/comun/api-config.js`. No hace consultas de documentos ni patentes. Publicar ese cambio en GitHub Pages conecta ambos formularios al backend.
-
-`/status` confirma presencia de configuración, cupos y protecciones; **no verifica la vigencia de certificados, el contrato comercial ni el saldo**. La comprobación final se hace desde la página con un documento propio y una patente autorizada. Esa prueba puede consumir el cupo del proveedor. No hay una prueba de producción exitosa registrada en esta entrega, porque no se proporcionaron los accesos.
-
-## Contratos que recibe el navegador
-
-Ambos formularios envían JSON con `turnstileToken` más `dni` o `patente`. Las respuestas llevan `Cache-Control: no-store`. Las claves de los proveedores nunca viajan al navegador.
-
-CUIL:
+El cliente genera un UUID `requestId` automáticamente. No pide otro dato al visitante y no carga un servicio CAPTCHA.
 
 ```json
-{
-  "verificado": true,
-  "cuil": "<11 dígitos confirmados>",
-  "dni": "<DNI consultado>",
-  "tipoClave": "CUIL",
-  "consultadoEn": "<fecha ISO>"
-}
+{"dni":"<DNI de 7 u 8 dígitos>","requestId":"<UUID v4 automático>"}
 ```
-
-Radicación:
 
 ```json
-{
-  "verificado": true,
-  "patente": "<patente consultada>",
-  "registro": "<nombre o null>",
-  "codigoRegistro": "<código o null>",
-  "direccion": "<dirección del registro o null>",
-  "localidad": "<localidad o null>",
-  "provincia": "<provincia o null>",
-  "consultadoEn": "<fecha ISO o null>",
-  "vigenteHasta": "<fecha ISO o null>",
-  "reutilizada": false
-}
+{"patente":"<patente normalizada>","requestId":"<UUID v4 automático>"}
 ```
 
-`verificado` indica validación del contrato y coherencia de identificadores del proveedor. No equivale a una constancia de ANSES ni a una certificación de DNRPA. En radicación se admite información parcial y cada campo ausente se muestra como “Sin información”. No se devuelven nombres de titulares, domicilios particulares ni cuerpos completos de proveedores.
+El resultado de CUIL contiene `verificado`, `cuil`, `dni`, `tipoClave` y `consultadoEn`. El de radicación contiene `verificado`, `patente`, `tipoVehiculo`, `registro`, `codigoRegistro`, `direccion`, `localidad`, `provincia`, `consultadoEn`, `vigenteHasta` y `reutilizada`; los campos incompletos pueden ser `null`. `tipoVehiculo` se obtiene del tipo informado por Chasis.
 
-| Estado | Ejemplos de `error` | Comportamiento |
+`verificado` expresa validación del contrato y coherencia de identificadores, no una constancia oficial. Las respuestas tienen `Cache-Control: no-store` y sólo incluyen los campos permitidos.
+
+| HTTP | Código | Significado |
 | --- | --- | --- |
-| 400 | `dato_invalido`, `json_invalido` | Corregir entrada |
-| 403 | `verificacion_requerida`, `origen_no_permitido` | Repetir verificación desde el sitio autorizado |
-| 404 | `cuil_no_encontrado`, `radicacion_no_encontrada` | El servicio no devolvió el dato pedido |
-| 409 | `dni_ambiguo`, `consulta_en_curso` | No elegir ni inventar un resultado |
-| 422 | `clave_no_es_cuil` | La clave recibida no es un CUIL |
-| 429 | `limite_consultas` | Esperar según el límite aplicable |
-| 502 | `respuesta_no_verificada`, `documento_no_coincide` | No publicar la respuesta inconsistente |
-| 503 | `proveedor_sin_configurar`, `cupo_agotado`, `servicio_no_disponible` | Falta de configuración o indisponibilidad, no ausencia del dato |
+| 400 | `dato_invalido`, `json_invalido` | Entrada o solicitud inválida |
+| 403 | `origen_no_permitido` | Origen distinto de DattaQuest |
+| 404 | `cuil_no_encontrado`, `radicacion_no_encontrada` | El proveedor no devolvió el dato solicitado |
+| 409 | `dni_ambiguo`, `consulta_en_curso`, `solicitud_duplicada` | Resultado ambiguo, consulta pendiente o envío repetido |
+| 422 | `clave_no_es_cuil` | La clave recibida no está identificada como CUIL |
+| 429 | `limite_consultas` | Límite de frecuencia alcanzado |
+| 429 | `limite_diario` | Cupo diario agotado; `Retry-After` indica los segundos hasta medianoche en Argentina |
+| 502 | `respuesta_no_verificada`, `documento_no_coincide` | Respuesta inconsistente que no debe publicarse |
+| 503 | `proveedor_sin_configurar`, `proveedor_no_autorizado`, `proteccion_sin_configurar`, `cupo_agotado`, `servicio_no_disponible` | Configuración incompleta, acceso insuficiente o indisponibilidad |
 
-El Worker no reintenta automáticamente solicitudes pagas. El contador global reserva cupo antes de acceder al proveedor y rechaza el mismo token de verificación durante 300 segundos. Sólo conserva contadores y hashes temporales de esos tokens; nunca el token original, el DNI ni la patente. Los hashes vencidos se limpian al recibir nuevas reservas. Los cuerpos están limitados a 4096 bytes incluso sin `Content-Length`. No se registran datos de consulta y la observabilidad del Worker está desactivada.
+## Controles de consumo
 
-## Otros servicios
+El Worker mantiene límite por IP, cupos globales atómicos y deduplicación por `requestId`, ruta e IP durante 300 segundos. **Un UUID no autentica a la persona**; sirve para detectar el mismo envío repetido. CORS tampoco sustituye la autorización del proveedor.
 
-Prestadores originales, prefijos y TAC continúan usando archivos locales. El prestador actual y el bloqueo de IMEI siguen siendo conectores opcionales propios, mediante `UPSTREAM_PRESTADORES_URL` / `UPSTREAM_IMEI_URL` y sus correspondientes secretos `_TOKEN`. Si se habilitan, configurar `OTHER_DAILY_LIMIT` (cupo independiente para cada una de esas rutas) y agregar las rutas a `DATTA_API_SERVICES`. No se atribuyen capacidades adicionales a las dos integraciones nuevas.
+Se persisten contadores y hashes temporales de solicitudes, nunca el UUID original, el DNI, la patente, el resultado ni la IP en claro. Los hashes vencidos se limpian en nuevas reservas. Los cuerpos se limitan a 4096 bytes, no hay reintentos automáticos de solicitudes pagas y la observabilidad del Worker está desactivada.
 
-Los resultados de los seis servicios presentan campos separados. Fuentes, nombres de archivos y explicaciones técnicas se mantienen fuera del resultado. La atribución de licencia del conjunto TAC se conserva fuera de la consulta.
+El namespace de rate limiting `1008` debe ser exclusivo en la cuenta Cloudflare para evitar compartir contadores con otro Worker.
 
-## Verificación reproducible
+## Pruebas y documentación
 
 Desde la raíz:
 
 ```sh
-node --test tests/test_cuil_adapter.mjs tests/test_chasis_adapter.mjs tests/test_worker.mjs
-node tests/test_frontend.cjs
+npm test
 python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
-Desde esta carpeta:
+Compilación sin despliegue:
 
 ```sh
-npm ci
-npm run check
+npm ci --prefix backend-cloudflare
+npm run check --prefix backend-cloudflare
 ```
 
-Las pruebas de proveedores utilizan respuestas simuladas y datos sintéticos; no validan accesos de producción. La prueba `node tests/test_browser.cjs` requiere `npm ci` y `npx playwright install chromium` desde la raíz; usa un servidor local y guarda capturas en `test-results/`. El workflow `Verificar servicios DattaQuest` ejecuta también esta prueba en cada PR y conserva las capturas como artefactos.
+`npm test` incluye `tests/test_activacion.mjs`, que comprueba el preflight y la conexión con un Worker v9 mediante respuestas simuladas. `Verificar servicios DattaQuest` ejecuta también Chromium y guarda capturas de escritorio/móvil en el artefacto `dattaquest-v9-capturas` de Actions. Estas pruebas no validan credenciales ni datos de producción.
 
-## Documentación de los contratos
-
-- [Afip SDK: API REST](https://afipsdk.com/docs/web-services/integracion/api/)
-- [Afip SDK: búsqueda por DNI](https://afipsdk.com/docs/web-services/guias/datos-contribuyentes/obtener-cuit-desde-dni/)
-- [ARCA: manual Padrón A13 v1.4](https://ftp.afip.gov.ar/ws/ws-padron-a13/manual-ws-sr-padron-a13-v1.4.pdf)
-- [ARCA: certificados y autorizaciones](https://www.afip.gob.ar/ws/programadores/certificados-digitales.asp)
-- [Chasis: documentación](https://www.chasis.com.ar/docs) y [condiciones](https://www.chasis.com.ar/terminos)
-- [DNRPA: acceso institucional a web services](https://www.dnrpa.gov.ar/portal_dnrpa/web_services/web_services.html)
-- [Cloudflare: validación Turnstile](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/), [rate limiting](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/) y [secretos](https://developers.cloudflare.com/workers/configuration/secrets/)
+- [Afip SDK: API REST](https://afipsdk.com/docs/web-services/integracion/api/) y [búsqueda por DNI](https://afipsdk.com/docs/web-services/guias/datos-contribuyentes/obtener-cuit-desde-dni/)
+- [ARCA: manual A13](https://ftp.afip.gov.ar/ws/ws-padron-a13/manual-ws-sr-padron-a13-v1.4.pdf) y [certificados](https://www.afip.gob.ar/ws/programadores/certificados-digitales.asp)
+- [Chasis: contrato de API](https://www.chasis.com.ar/docs) y [condiciones](https://www.chasis.com.ar/terminos)
+- [Cloudflare: rate limiting](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/) y [secretos](https://developers.cloudflare.com/workers/configuration/secrets/)

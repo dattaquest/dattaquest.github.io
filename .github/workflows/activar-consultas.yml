@@ -1,0 +1,118 @@
+name: Activar consultas DattaQuest
+
+on:
+  workflow_dispatch:
+    inputs:
+      cuil_diarias:
+        description: 'Cupo máximo diario de consultas CUIL (1 a 100000)'
+        required: true
+        type: number
+      radicacion_diarias:
+        description: 'Cupo máximo diario de radicación; puede consumir créditos (1 a 100000)'
+        required: true
+        type: number
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: dattaquest-activar-consultas
+  cancel-in-progress: false
+
+jobs:
+  activar:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Comprobar accesos y cupos antes de modificar la publicación
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          AFIPSDK_ACCESS_TOKEN: ${{ secrets.AFIPSDK_ACCESS_TOKEN }}
+          ARCA_CUIT_REPRESENTADA: ${{ secrets.ARCA_CUIT_REPRESENTADA }}
+          ARCA_CERT: ${{ secrets.ARCA_CERT }}
+          ARCA_KEY: ${{ secrets.ARCA_KEY }}
+          CHASIS_API_KEY: ${{ secrets.CHASIS_API_KEY }}
+          DATTA_CUIL_LIMIT: ${{ inputs.cuil_diarias }}
+          DATTA_RADICACION_LIMIT: ${{ inputs.radicacion_diarias }}
+        run: node herramientas/verificar_accesos.mjs
+      - name: Pruebas de contratos y formularios
+        run: npm test
+      - name: Instalar Wrangler
+        run: npm ci --ignore-scripts --no-audit --no-fund --prefix backend-cloudflare
+      - name: Guardar los cupos elegidos
+        env:
+          DATTA_CUIL_LIMIT: ${{ inputs.cuil_diarias }}
+          DATTA_RADICACION_LIMIT: ${{ inputs.radicacion_diarias }}
+        run: |
+          node --input-type=module <<'JS'
+          import {readFileSync,writeFileSync} from 'node:fs';
+          const path='backend-cloudflare/wrangler.toml';
+          let text=readFileSync(path,'utf8');
+          for (const [name,value] of [['CUIL_DAILY_LIMIT',process.env.DATTA_CUIL_LIMIT],['RADICACION_DAILY_LIMIT',process.env.DATTA_RADICACION_LIMIT]]) {
+            if (!/^[1-9][0-9]*$/.test(value)||Number(value)>100000) throw Error('Cupo inválido');
+            text=text.replace(new RegExp('^'+name+' = "[0-9]+"$','m'),name+' = "'+value+'"');
+          }
+          writeFileSync(path,text);
+          JS
+      - name: Publicar Worker y configurar secretos
+        id: worker
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: backend-cloudflare
+          wranglerVersion: '4.166.0'
+          # Garantiza que el Worker exista antes de la carga inicial de secretos.
+          # Sin secretos, sus rutas de consulta permanecen cerradas.
+          preCommands: npx wrangler deploy
+          command: deploy
+          secrets: |
+            AFIPSDK_ACCESS_TOKEN
+            ARCA_CUIT_REPRESENTADA
+            ARCA_CERT
+            ARCA_KEY
+            CHASIS_API_KEY
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+          AFIPSDK_ACCESS_TOKEN: ${{ secrets.AFIPSDK_ACCESS_TOKEN }}
+          ARCA_CUIT_REPRESENTADA: ${{ secrets.ARCA_CUIT_REPRESENTADA }}
+          ARCA_CERT: ${{ secrets.ARCA_CERT }}
+          ARCA_KEY: ${{ secrets.ARCA_KEY }}
+          CHASIS_API_KEY: ${{ secrets.CHASIS_API_KEY }}
+      - name: Conectar la dirección desplegada con GitHub Pages
+        env:
+          DATTA_DEPLOYMENT_URL: ${{ steps.worker.outputs.deployment-url }}
+        run: |
+          node herramientas/configurar_api.mjs "${DATTA_DEPLOYMENT_URL%/}/api"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add otros-servicios/comun/api-config.js backend-cloudflare/wrangler.toml
+          if ! git diff --cached --quiet; then
+            git commit -m 'Configurar consultas DattaQuest con Worker desplegado'
+            git push origin HEAD:main
+          fi
+      - name: Solicitar publicación de GitHub Pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds" --silent
+      - name: Resultado de activación
+        env:
+          DATTA_DEPLOYMENT_URL: ${{ steps.worker.outputs.deployment-url }}
+        run: |
+          node --input-type=module <<'JS'
+          import {appendFileSync} from 'node:fs';
+          const url=new URL(process.env.DATTA_DEPLOYMENT_URL);
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+            '## Servidor desplegado\n\n'+url.origin+'/api\n\n'+
+            'Se verificó autenticación y se conectó la configuración de GitHub Pages. '+
+            'No se consultaron documentos ni patentes. Falta comprobar desde la página un dato propio o autorizado.\n');
+          JS

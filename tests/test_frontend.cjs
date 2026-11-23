@@ -29,9 +29,10 @@ function runScript(context, relative) {
 }
 function harness(module, overrides = {}) {
   const elements = {};
+  const createdTags = [];
   for (const id of ['dqForm', 'dqValue', 'dqResult', 'dqCurrent', 'dqRefresh', 'dqUpdated', 'dqQuotes']) elements[id] = new Element();
   elements.dqForm.button = new Element('button');
-  const document = {getElementById: id => elements[id], createElement: tag => new Element(tag), head: new Element('head'), body: new Element('body')};
+  const document = {getElementById: id => elements[id], createElement: tag => { createdTags.push(tag); return new Element(tag); }, head: new Element('head'), body: new Element('body')};
   const storage = new Map();
   const context = vm.createContext({console, setTimeout, clearTimeout, URL, AbortController, Promise,
     document, location: {hostname: 'localhost'},
@@ -41,7 +42,7 @@ function harness(module, overrides = {}) {
   context.window = context;
   runScript(context, 'otros-servicios/comun/base.js');
   if (module) runScript(context, 'otros-servicios/' + module + '/js/consulta.js');
-  return {context, elements, async submit(value) {
+  return {context, elements, createdTags, async submit(value) {
     elements.dqValue.value = value;
     await elements.dqForm.events.submit({preventDefault() {}});
   }};
@@ -139,7 +140,7 @@ async function test(name, callback) { await callback(); passed++; console.log('O
     assert.match(h.elements.dqResult.textContent, /más de una clave/);
     h.context.DattaApi.request = async () => { throw Object.assign(Error(), {code: 'proveedor_no_autorizado'}); };
     await h.submit(dni);
-    assert.match(h.elements.dqResult.textContent, /Servicio temporalmente no disponible/);
+    assert.match(h.elements.dqResult.textContent, /Consulta temporalmente no disponible/);
   });
 
   await test('radicación parcial, sólo dirección, patente diferente y error transitorio', async () => {
@@ -151,12 +152,70 @@ async function test(name, callback) { await callback(); passed++; console.log('O
     assert.equal(fields(h.elements.dqResult).find(row => row[0] === 'Registro: ')[1], 'Sin información');
     assert.equal(fields(h.elements.dqResult).find(row => row[0] === 'Dirección: ')[1], 'DIRECCIÓN DE PRUEBA');
     assert.equal(fields(h.elements.dqResult).some(row => row[0] === 'Actualizado: '), true);
+    assert.equal(fields(h.elements.dqResult).some(row => /Tipo de vehículo|Código postal|Teléfono del registro/.test(row[0])), false);
+    answer = {...answer, tipoVehiculo: 'AUTOMOTOR', codigoPostal: 'C0000', telefono: '0000-0000'};
+    await h.submit('AB123CD');
+    for (const [label, value] of [['Tipo de vehículo: ', 'AUTOMOTOR'], ['Código postal: ', 'C0000'], ['Teléfono del registro: ', '0000-0000']]) {
+      assert.equal(fields(h.elements.dqResult).find(row => row[0] === label)[1], value);
+    }
     answer = {...answer, patente: 'AC123CD'};
     await h.submit('AB123CD');
     assert.equal(h.elements.dqResult.dataset.type, 'error');
     h.context.DattaApi.request = async () => { throw Object.assign(Error(), {code: 'servicio_no_disponible'}); };
     await h.submit('AB123CD');
     assert.doesNotMatch(h.elements.dqResult.textContent, /no registrada|no encontrada/i);
+  });
+
+  await test('CUIL y radicación rechazan basura sin consultar y admiten separadores habituales', async () => {
+    for (const [module, fixture, valid, invalid, key, expected] of [
+      ['cuil', {verificado: true, tipoClave: 'CUIL', dni: '12345678', cuil: syntheticCuil('12345678')},
+        ['12.345.678', '12 345 678'], ['a12345678', '12345678!', '1234/5678', '00000000', '<12345678>'], 'dni', '12345678'],
+      ['radicacion', {verificado: true, patente: 'AB123CD', registro: 'REGISTRO DE PRUEBA'},
+        ['ab-123-cd', 'AB.123.CD'], ['AB/123CD', 'AB123CD!', '<AB123CD>', 'AB123CÑ'], 'patente', 'AB123CD']
+    ]) {
+      const calls = [];
+      const h = harness(module, {DattaApi: {enabled: () => true, request: async (route, payload) => { calls.push({route, payload}); return fixture; }}});
+      for (const value of invalid) {
+        await h.submit(value);
+        assert.equal(h.elements.dqResult.dataset.type, 'error');
+        assert.match(h.elements.dqResult.children[0].textContent, /no válido|no válida/);
+      }
+      assert.equal(calls.length, 0, 'Las entradas inválidas no se envían');
+      for (const value of valid) {
+        await h.submit(value);
+        assert.equal(h.elements.dqResult.dataset.type, 'success');
+        assert.equal(calls.at(-1).payload[key], expected);
+        assert.deepEqual(Object.keys(calls.at(-1).payload), [key]);
+      }
+    }
+  });
+
+  await test('formularios sin sexo, CAPTCHA ni derivación externa; errores de cupo honestos', async () => {
+    for (const [module, value] of [['cuil', '12345678'], ['radicacion', 'AB123CD']]) {
+      const html = fs.readFileSync(path.join(root, 'otros-servicios', module, 'index.html'), 'utf8');
+      const form = html.match(/<form\b[^>]*id="dqForm"[\s\S]*?<\/form>/)[0];
+      assert.equal((form.match(/<input\b/g) || []).length, 1);
+      assert.equal((form.match(/<button\b[^>]*type="submit"/g) || []).length, 1);
+      assert.doesNotMatch(form, /<select\b|captcha|sexo|código verificador/i);
+      assert.doesNotMatch(html, /href="https?:\/\/[^\"]*(?:anses|dnrpa|constancia-cuil|radicacion-vehiculo)/i);
+      const h = harness(module);
+      await h.submit(value);
+      assert.match(h.elements.dqResult.textContent, /Consulta temporalmente no disponible/);
+      assert.match(h.elements.dqResult.textContent, /Todavía no está habilitada/);
+      assert.equal(h.elements.dqResult.children.some(node => node.tagName === 'A'), false);
+      h.context.DattaApi.enabled = () => true;
+      for (const code of ['proveedor_sin_configurar', 'limite_diario', 'cupo_agotado', 'solicitud_duplicada', 'dni_ambiguo']) {
+        h.context.DattaApi.request = async () => { throw Object.assign(Error(), {code}); };
+        await h.submit(value);
+        assert.equal(h.elements.dqResult.dataset.type, 'error');
+        assert.doesNotMatch(h.elements.dqResult.textContent, /ANSES|DNRPA|constancia|https?:/i);
+        assert.equal(h.elements.dqResult.children.some(node => node.tagName === 'A'), false);
+        if (code === 'limite_diario') {
+          assert.match(h.elements.dqResult.textContent, /mañana/);
+          assert.doesNotMatch(h.elements.dqResult.textContent, /minutos/);
+        }
+      }
+    }
   });
 
   await test('IMEI corrige Xiaomi y nunca supone estado de bloqueo', async () => {
@@ -199,20 +258,25 @@ async function test(name, callback) { await callback(); passed++; console.log('O
     assert.doesNotMatch(h.elements.dqQuotes.textContent + h.elements.dqUpdated.textContent, /DolarApi|Fuente:/);
   });
 
-  await test('cliente API real envía verificación y conserva código de error', async () => {
+  await test('cliente API real funciona sin sitekey ni widget y envía requestId automático', async () => {
     let request;
-    const h = harness(null, {DATTA_API_BASE: 'http://localhost:9999/api', DATTA_TURNSTILE_SITE_KEY: 'fixture-site-key',
+    const requestId = '11111111-1111-4111-8111-111111111111';
+    const h = harness(null, {DATTA_API_BASE: 'http://localhost:9999/api',
       DATTA_API_SERVICES: ['cuil', 'radicacion'],
-      turnstile: {render: (_, options) => { setTimeout(() => options.callback('fixture-token'), 0); return 1; }, remove() {}},
+      crypto: {randomUUID: () => requestId},
       fetch: async (url, options) => { request = {url, options}; return json({error: 'dni_ambiguo'}, 409); }});
     runScript(h.context, 'otros-servicios/comun/api-client.js');
     assert.equal(h.context.DattaApi.enabled('cuil'), true);
     assert.equal(h.context.DattaApi.enabled('prestadores'), false);
     await assert.rejects(h.context.DattaApi.request('cuil', {dni: '12345678'}), error => error.code === 'dni_ambiguo' && error.status === 409);
     assert.equal(request.url, 'http://localhost:9999/api/cuil');
-    assert.deepEqual(JSON.parse(request.options.body), {dni: '12345678', turnstileToken: 'fixture-token'});
+    assert.deepEqual(JSON.parse(request.options.body), {dni: '12345678', requestId});
     assert.equal(request.options.credentials, 'omit');
-    assert.equal(h.elements.dqForm.children.length, 0, 'Se retira la verificación al completar');
+    assert.equal(h.elements.dqForm.children.length, 0, 'No se crea un widget de verificación');
+    assert.equal(h.context.document.head.children.length, 0, 'No se carga un script de terceros');
+    assert.deepEqual(h.createdTags, [], 'El cliente no crea elementos adicionales');
+    assert.equal(h.context.DATTA_TURNSTILE_SITE_KEY, undefined);
+    assert.equal(h.context.turnstile, undefined);
   });
 
   console.log('\n' + passed + ' pruebas de frontend aprobadas.');

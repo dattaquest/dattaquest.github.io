@@ -1,105 +1,83 @@
-> **Actualización v8:** la integración de CUIL usa ARCA A13 mediante Afip SDK y la de radicación usa la API comercial de Chasis. Ambas rutas están conectadas al Worker. Para los contratos, secretos y pasos de activación vigentes, consultar [backend-cloudflare/LEEME.md](backend-cloudflare/LEEME.md). Los contratos genéricos de versiones anteriores que aparecen más abajo son históricos; no se usan `UPSTREAM_CUIL_URL` ni `UPSTREAM_RADICACION_URL`. La activación sigue pendiente de los accesos y la URL de producción del titular del sitio.
+# DattaQuest · Otros servicios · v9
 
-# DattaQuest · Primera implementación de Otros servicios
+Sitio: https://dattaquest.github.io/otros-servicios/index.html
 
-## Publicación en GitHub Pages
+Repositorio: `dattaquest/dattaquest.github.io`.
 
-1. Descomprimí el ZIP en tu PC.
-2. Copiá los archivos y carpetas de **dattashamir-main/** al nivel principal (raíz) de tu repositorio `TomiAF98/dattashamir` (o subí los archivos modificados conservando la estructura).
-3. Hacé commit a la rama publicada por GitHub Pages.
-4. Abrí `https://tomiaf98.github.io/dattashamir/index.html` y hacé clic en **OTROS SERVICIOS**.
-5. También podés ir a `https://tomiaf98.github.io/dattashamir/otros-servicios/index.html`.
+**CUIL y radicación todavía no están activados ni probados en producción en esta entrega.** La v8 incorporó código de proveedor, pero dejó la URL de API vacía y no desplegó un servidor con credenciales. Publicar los archivos de GitHub Pages no completa esa activación.
 
-La carpeta `.nojekyll` previene que GitHub Pages excluya nombres especiales. No necesitás servidor ni base de datos para probar esta implementación.
+## Qué cambia en v9
 
-## Servicios y estado
+- CUIL conserva únicamente DNI y botón; radicación, patente y botón.
+- Los resultados se presentan dentro de DattaQuest, sin selección de sexo, CAPTCHA, código verificador ni enlaces de salida a ANSES/DNRPA.
+- Las entradas con letras o símbolos inválidos se rechazan antes de consultar. Se admiten los separadores habituales.
+- Cuando falta configuración o hay una falla, se informa sin presentar un dato supuesto.
+- Se elimina la dependencia de un widget de verificación. El cliente crea un `requestId` automático y el servidor mantiene límites de frecuencia, cupos diarios y detección de dobles envíos.
+- Se agrega la activación manual desde GitHub Actions para desplegar el Worker y conectar su URL con GitHub Pages.
 
-| Página | Estado inicial |
-|---|---|
-| `otros-servicios/prestadores/index.html` | Interfaz + validación del número; **no consulta** el operador actual (requiere portabilidad autorizada). |
-| `otros-servicios/prefijos/index.html` | Consulta **local y funcional** de una **muestra parcial** de códigos en `data/prefijos.json`. |
-| `otros-servicios/dolar/index.html` | Consulta **funcional** de cotizaciones vía `https://dolarapi.com/v1/dolares`. API externa gratuita, **no base propia todavía**. Caché local durante 3 horas. Fuente atribuida. |
-| `otros-servicios/cuil/index.html` | Interfaz + validación DNI; **no calcula ni asegura** el CUIL real. Requiere ANSES u otra vía autorizada. |
-| `otros-servicios/radicacion/index.html` | Interfaz + validación patente; **no consulta** DNRPA ni radicación real. |
-| `otros-servicios/imei/index.html` | **Valida estructura y Luhn localmente**. **No consulta** listas de bloqueo/robo (requiere fuente autorizada). |
+## Estado por servicio
 
-## Organización
+| Servicio | Funcionamiento |
+| --- | --- |
+| Prestadores | Asignación original del bloque desde archivos locales. Marca comercial asociada cuando se reconoce. El operador actual sólo se muestra si una API habilitada lo confirma. |
+| Prefijos | Consulta de códigos y localidades desde los archivos locales. |
+| Dólar | Cotizaciones mediante DolarAPI; conserva caché local y muestra la fecha de los datos. |
+| CUIL | Ruta integrada con ARCA A13 mediante Afip SDK. Requiere credenciales de producción autorizadas y despliegue. |
+| Radicación | Ruta integrada con la API comercial de Chasis. Requiere cuenta, key con permisos, cupos elegidos y despliegue. |
+| IMEI | Validación del formato y dígito; marca/modelo por TAC en catálogos locales. El bloqueo sigue siendo un conector opcional y no se deduce del TAC. |
 
-- Los archivos HTML originales de la raíz fueron modificados únicamente para agregar el enlace desplegable y dos referencias a recursos (`otros-servicios/comun/nav.css`, `otros-servicios/comun/nav.js`).
-- `otros-servicios/comun/` tiene estilos y scripts compartidos para que el diseño sea uniforme. Incluye un desplegable con alternativa nativa si los scripts de Bootstrap originales no se ejecutan.
-- Cada servicio tiene `index.html`, `css/estilo.css`, `js/consulta.js` y, cuando corresponde, una carpeta `data/`.
-- El sonido del menú se reproduce con `click.mp3` original. Los enlaces están hechos para el sitio GitHub Pages dentro de `/dattashamir/`.
+Los seis servicios presentan etiquetas y valores por líneas. Las fuentes y los nombres de bases no aparecen dentro de los resultados. La atribución de licencia del catálogo TAC se conserva fuera de la consulta.
 
-## Evolución a bases propias
+## Activar CUIL y radicación
 
-GitHub Pages publica archivos estáticos: **no corre bases SQL, procesos automáticos ni APIs privadas**. Para trabajar con datos internos, habrá que añadir una API/backend separado (por ejemplo Cloudflare Workers o Supabase) y un proceso de actualización de datos autorizado. Para cotizaciones, la API externa actual es un adaptador temporal. Los prefijos pueden ampliarse usando los indicativos públicos del ENACOM con seguimiento de su fuente y fecha. No recolectar ni exponer datos personales sin la base legal correspondiente.
+La guía completa está en [backend-cloudflare/LEEME.md](backend-cloudflare/LEEME.md).
 
-Fuentes de referencia:
-- ENACOM prestadores: https://www.enacom.gob.ar/buscador-de-prestadores_p1510
-- ENACOM indicativos: https://www.enacom.gob.ar/indicativos-interurbanos_p143
-- ANSES CUIL: https://www.argentina.gob.ar/servicio/solicitar-constancia-de-cuil
-- DNRPA radicación: https://www.argentina.gob.ar/propiedadautomotor/consultar-radicacion-vehiculo
-- ENACOM IMEI: https://www.enacom.gob.ar/denuncia-al-910_p4034
-- Cotizaciones / uso: https://dolarapi.com/docs/uso
+1. Obtener los accesos autorizados de Afip SDK/ARCA y Chasis.
+2. En **Settings → Secrets and variables → Actions**, cargar estos siete secretos: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `AFIPSDK_ACCESS_TOKEN`, `ARCA_CUIT_REPRESENTADA`, `ARCA_CERT`, `ARCA_KEY` y `CHASIS_API_KEY`.
+3. Con v9 en `main`, abrir **Actions → Activar consultas DattaQuest → Run workflow**, seleccionar `main` y elegir los cupos diarios de CUIL y radicación.
+4. Revisar el resultado del workflow y comprobar desde la página un dato propio o autorizado.
 
-**Nota de privacidad:** los formularios de prestadores, CUIL, radicación e IMEI no transmiten los datos ingresados. El de dólar sí solicita cotizaciones a un servicio externo sin pasar identificaciones del usuario.
+No se asigna presupuesto por defecto ni se compran créditos. Los límites iniciales son `0`; el workflow exige elegir valores positivos. Las consultas pueden consumir el cupo o los créditos del proveedor.
 
+El preflight verifica un ticket vigente de Afip SDK/ARCA y el estado de consultas de Chasis **sin consultar DNI ni patentes**. Chasis debe informar consultas disponibles o modalidad a demanda ya contratada; el script no activa esa facturación. La key también debe tener permiso completo para `POST /consultas`, que el preflight no puede confirmar. `GET /api/status` sólo comprueba versión y configuración; exige v9. Ninguno sustituye la comprobación final de una consulta autorizada desde la página.
 
-# ACTUALIZACIÓN v2 — menú y consultas
+El workflow despliega el Worker, guarda sus secretos, configura la URL efectiva, publica los cambios de configuración en `main` y solicita la compilación de GitHub Pages. Los secretos nunca se escriben en el código público.
 
-### Navegación
-- Corregida la clase de **INICIO** en las siete páginas nuevas y el marcado LI de todos los menús modificados.
-- Añadido alineado consistente, sin salto de línea en desktop, a `otros-servicios/comun/nav.css`.
+## Archivos y publicación
 
-### Cuatro conectores de API (opcionales; NO son datos reales por defecto)
+- `otros-servicios/comun/`: presentación, navegación y cliente API compartidos.
+- `otros-servicios/<servicio>/`: HTML, estilos, lógica y archivos de datos de cada servicio.
+- `backend-cloudflare/`: rutas, adaptadores de proveedor y controles de consumo.
+- `herramientas/verificar_accesos.mjs`: preflight de activación.
+- `herramientas/configurar_api.mjs`: comprueba el Worker y guarda su URL pública.
+- `.github/workflows/activar-consultas.yml`: activación manual con secretos y cupos.
+- `.github/workflows/verificar-servicios.yml`: pruebas automáticas y capturas de navegador.
 
-Configuración en `otros-servicios/comun/api-config.js`:
+Los cambios visuales se publican al fusionar la rama en `main`, según la configuración de Pages del repositorio. GitHub Pages sirve archivos estáticos; las claves de proveedores y las consultas privadas se ejecutan en el Worker.
 
-```js
-window.DATTA_API_BASE = 'https://TU_BACKEND/api';
+## Datos locales y actualización
+
+Los workflows **Importar numeracion ENACOM**, **Actualizar base IMEI TAC (Osmocom)** y **Ampliar catalogo IMEI TAC** mantienen los datos locales según sus configuraciones. El importador de numeración es `herramientas/actualizar_enacom.py`; las herramientas de catálogo IMEI están en `otros-servicios/imei/tools/`.
+
+El catálogo TAC identifica modelos, no confirma bloqueo, titularidad ni estado físico de un equipo. Su configuración prioriza JSON locales y un catálogo complementario. Conservar las atribuciones y licencias incluidas: la base Osmocom TAC es de Harald Welte y colaboradores, **CC BY-SA 3.0**.
+
+## Verificación
+
+Desde la raíz del repositorio:
+
+```sh
+npm test
+python3 -m unittest discover -s tests -p 'test_*.py'
+npm ci --prefix backend-cloudflare
+npm run check --prefix backend-cloudflare
 ```
 
-El frontend utiliza `POST` JSON (con CORS admitiendo tu sitio). Las credenciales **nunca** deben aparecer en HTML/JS público: guárdalas exclusivamente en un backend seguro. Solo manda datos cuando la API está explícitamente configurada. Respuestas esperadas:
+Para la prueba de navegador local:
 
-- `POST /api/prestadores` body `{"numero":"1112345678"}` → `{"verificado":true,"prestador_actual":"...","prestador_original":"...","portado":false,"fuente":"..."}`.
-- `POST /api/cuil` body `{"dni":"12345678"}` → `{"verificado":true,"cuil":"20-12345678-6","fuente":"..."}`. **Solo** con CUIL comprobado realmente por una fuente habilitada; no generar por inferencia.
-- `POST /api/radicacion` body `{"patente":"AB123CD"}` → `{"verificado":true,"localidad":"...","provincia":"...","registro":"...","fuente":"..."}`.
-- `POST /api/imei/estado` body `{"imei":"...15 dígitos..."}` → `{"verificado":true,"estado":"bloqueado|no_reportado|desconocido","fuente":"..."}`.
+```sh
+npm ci
+npx playwright install chromium
+npm run test:browser
+```
 
-Los cuatro conectores exigen `verificado:true` en la respuesta; sin API o si la fuente no confirma los datos, presentan **No verificado**, nunca un resultado supuesto. Un backend por sí solo no da acceso a ENACOM/ANSES/DNRPA/GSMA; para lograrlo hay que conseguir credenciales/licencias y documentación de sus servicios autorizados.
-
-### Modelo del dispositivo vía TAC (sí intenta funcionar sin credenciales)
-
-`otros-servicios/imei/js/tac-lookup.js` busca por el TAC de 8 dígitos del IMEI validado con Luhn, en una base pública comunitaria de Osmocom disponible en `https://raw.githubusercontent.com/G33l0/imei-generator/main/data/tac.sqlite` (snapshot de ~22.500 TAC). Carga el motor SQL.js desde CDN Cloudflare. **El IMEI no se transmite al repositorio ni a SQL.js**; únicamente descarga archivos estáticos. Si el catálogo remoto falla, recurre a cuatro TAC verificados incluidos en el JS; si no hay coincidencia, **no inventa un modelo**.
-
-La base comunitaria **no es la lista de robados** ni el catálogo completo GSMA. **Bloqueado/operativo** sigue requiriendo acceso autorizado en tiempo real a una base de listas negras y, además, no se puede garantizar el funcionamiento físico del teléfono usando solo el IMEI.
-
-Atribución: Base Osmocom TAC, © Harald Welte y colaboradores, **CC-BY-SA 3.0**; motor SQL.js licencia MIT, alojado en CDN de terceros. Si querés autonomía total, descargá la base y el motor con licencias correspondientes y guardalos en tu propio hosting (actualizá URLs en tac-lookup.js).
-
-### Enlaces oficiales (alternativa inmediata gratuita)
-- Prestadores: https://www.enacom.gob.ar/buscador-de-prestadores_p1510
-- CUIL: https://www.argentina.gob.ar/servicio/solicitar-constancia-de-cuil
-- Radicación con código verificador: https://www.dnrpa.gov.ar/portal_dnrpa/radicacion2
-- IMEI: https://www.enacom.gob.ar/imei
-
-**Privacidad:** Los formularios DNI/IMEI/teléfono/patente NO transmiten datos personales a terceros sin que `DATTA_API_BASE` esté configurada. En el caso de CUIL, informá a los usuarios antes de activar la API, obtené consentimiento según corresponda y definí política de privacidad y conservación de datos. No registres números íntegros en logs de un backend.
-
-
-### Cómo alojar tu propia base de modelos IMEI (sin dependencia permanente de GitHub ajeno)
-
-1. En tu computadora, ejecutá `python otros-servicios/imei/tools/descargar_base_tac.py`.
-2. El script descarga el archivo abierto y verifica el esquema de la base SQLite, guardándolo en `otros-servicios/imei/data/tac.sqlite` y poniendo `local_db:true` en `config.json`.
-3. Subí ambos archivos a tu repositorio. Desde entonces la web busca el TAC en **tu propia copia**. Si esa copia falla, intenta la fuente pública y después la pequeña muestra local.
-
-La copia es una base TAC de identificación de modelos, **NO una base de IMEI bloqueados**. Respetá la licencia CC-BY-SA 3.0 y conservá su atribución.
-
-# ACTUALIZACIÓN v3 — fuentes propias (21/11/2026)
-
-- **Nuevo:** `herramientas/actualizar_enacom.py`, importador verificable de XLS oficial que genera hasta ~300 códigos de área y miles de asignaciones de prestador **original** en archivos locales. Necesita ejecutar la importación real; la publicación no incluye el XLS, que no se pudo descargar en este entorno.
-- **Nuevo:** `.github/workflows/actualizar-enacom.yml` para importar manualmente mediante GitHub Actions proporcionando la URL XLS **directa** de ENACOM.
-- **Nuevo:** `.github/workflows/actualizar-tac.yml` permite actualizar el catálogo comunitario TAC mensualmente y manualmente.
-- **Nuevo:** `otros-servicios/imei/tools/convertir_base_tac.py`, transforma la base SQLite en JSON locales segmentados. Con `local_json:true` el sitio evita el CDN para identificación del modelo por TAC.
-- **Mejorado:** consulta de prestador muestra separados *original* (si fue importada la fuente) y *actual* (solo API autorizada). Código de prefijos anuncia la procedencia cuando fue importada.
-- **Corregido:** normalización de números argentinos con `+54 9`, `011 15` y formatos habituales.
-- **Documentación completa:** `documentacion/FUENTES_Y_PLAN_v3.md`.
-- **Pendiente:** acceso automático a portabilidad, CUIL asignado, radicación y bloqueo IMEI. No se atribuyen datos no verificados a ANSES/DNRPA/ENACOM/GSMA.
+Las APIs de las pruebas están simuladas: estos comandos no buscan documentos ni patentes ni acreditan que las cuentas de producción estén habilitadas. `npm test` incluye las pruebas de activación. Las capturas se generan en `test-results/` y también se guardan como artefacto `dattaquest-v9-capturas` del workflow de verificación.
