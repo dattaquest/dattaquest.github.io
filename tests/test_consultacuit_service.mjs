@@ -99,3 +99,71 @@ test('status rechaza redirecciones sin seguir el destino ni anunciar disponibili
     assert.equal(calls, 1);
   }
 });
+
+const vehicleRequest = (patente = 'AB123CD', extra = {}) => new Request('https://conector.example/api/radicacion', {
+  method: 'POST', headers: {Origin: origin, 'Content-Type': 'application/json', ...extra},
+  body: JSON.stringify({patente}),
+});
+
+test('radicación usa su adaptador, CORS y fecha de consulta sin consultar DNI', async () => {
+  const calls = [];
+  const time = Date.parse('2026-11-23T12:00:00Z');
+  const service = createConsultaCuitService({now: () => time,
+    lookup: async () => assert.fail('No debe consultar documentos'),
+    radicacionLookup: async ({patente}) => {
+      calls.push(patente);
+      return {verificado: true, patente, registro: 'REGISTRO SINTÉTICO', localidad: 'LOCALIDAD DE PRUEBA',
+        fuente: 'Argentina.gob.ar / DNRPA'};
+    }});
+  for (const patente of ['ABC123', 'AB123CD', '123ABC', 'A123BCD']) {
+    const response = await service(vehicleRequest(patente));
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('Access-Control-Allow-Origin'), origin);
+    assert.equal(response.headers.get('Cache-Control'), 'no-store');
+    assert.equal(body.patente, patente);
+    assert.equal(body.consultadoEn, '2026-11-23T12:00:00.000Z');
+  }
+  assert.deepEqual(calls, ['ABC123', 'AB123CD', '123ABC', 'A123BCD']);
+});
+
+test('radicación rechaza origen, método y patente inválidos antes del proveedor', async () => {
+  const service = createConsultaCuitService({radicacionLookup: async () => assert.fail('No debe consultar')});
+  const url = 'https://conector.example/api/radicacion';
+  assert.equal((await service(new Request(url, {method: 'OPTIONS', headers: {Origin: origin}}))).status, 204);
+  assert.equal((await service(new Request(url, {headers: {Origin: origin}}))).status, 405);
+  for (const patente of ['', '123', 'AB123CD/', 'ab123cd', '<script>', 'AB123CD?x=1']) {
+    assert.equal((await service(vehicleRequest(patente))).status, 400);
+  }
+  assert.equal((await service(vehicleRequest('AB123CD', {Origin: 'https://ajeno.example'}))).status, 403);
+  assert.equal((await service(vehicleRequest('AB123CD', {Origin: ''}))).status, 403);
+});
+
+test('estado de radicación verifica sólo el formulario y no afirma una consulta de patente', async () => {
+  let calls = 0;
+  const service = createConsultaCuitService({
+    radicacionLookup: async () => assert.fail('No debe consultar patentes'),
+    radicacionHealth: async () => {calls++; return {disponible: true};},
+  });
+  const response = await service(new Request('https://conector.example/api/radicacion/status'));
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {version: 11, proveedor: 'Argentina.gob.ar / DNRPA',
+    servicios: {radicacion: true}, consultaPatenteVerificada: false});
+  assert.equal(calls, 1);
+});
+
+test('restricciones, cambios de formulario y fallos no se anuncian como radicación inexistente', async () => {
+  for (const code of ['fuente_restringida', 'formulario_cambiado', 'fuente_no_disponible']) {
+    const failure = Object.assign(new Error('detalle que no debe salir'), {code, status: 503});
+    const service = createConsultaCuitService({radicacionHealth: async () => {throw failure;},
+      radicacionLookup: async () => {throw failure;}});
+    const health = await service(new Request('https://conector.example/api/radicacion/status'));
+    assert.equal(health.status, 503);
+    assert.deepEqual(await health.json(), {error: code, servicios: {radicacion: false}, consultaPatenteVerificada: false});
+    const response = await service(vehicleRequest());
+    assert.equal(response.status, 503);
+    assert.deepEqual(await response.json(), {error: code});
+  }
+  const service = createConsultaCuitService({radicacionHealth: async () => ({disponible: false})});
+  assert.equal((await service(new Request('https://conector.example/api/radicacion/status'))).status, 503);
+});

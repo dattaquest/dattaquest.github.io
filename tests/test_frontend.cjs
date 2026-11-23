@@ -227,7 +227,7 @@ async function test(name, callback) { await callback(); passed++; console.log('O
     assert.match(html, /id="dqResult"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/);
   });
 
-  await test('radicación parcial, sólo dirección, patente diferente y error transitorio', async () => {
+  await test('radicación muestra sólo los campos del registro y conserva resultados parciales anteriores', async () => {
     let answer = {verificado: true, patente: 'AB123CD', registro: null, codigoRegistro: null,
       direccion: 'DIRECCIÓN DE PRUEBA', localidad: null, provincia: null, consultadoEn: '2026-01-01T12:00:00.000Z'};
     const h = harness('radicacion', {DattaApi: {enabled: route => route === 'radicacion', request: async () => answer}});
@@ -235,19 +235,114 @@ async function test(name, callback) { await callback(); passed++; console.log('O
     assert.equal(h.elements.dqResult.dataset.type, 'success');
     assert.equal(fields(h.elements.dqResult).find(row => row[0] === 'Registro: ')[1], 'Sin información');
     assert.equal(fields(h.elements.dqResult).find(row => row[0] === 'Dirección: ')[1], 'DIRECCIÓN DE PRUEBA');
-    assert.equal(fields(h.elements.dqResult).some(row => row[0] === 'Actualizado: '), true);
-    assert.equal(fields(h.elements.dqResult).some(row => /Tipo de vehículo|Código postal|Teléfono del registro/.test(row[0])), false);
-    answer = {...answer, tipoVehiculo: 'AUTOMOTOR', codigoPostal: 'C0000', telefono: '0000-0000'};
+    assert.equal(fields(h.elements.dqResult).some(row => row[0] === 'Consultado: '), true);
+    assert.equal(fields(h.elements.dqResult).some(row => /Tipo de vehículo|Código postal|Teléfono del registro|Horario|Fuente/.test(row[0])), false);
+    answer = {...answer, fuente: 'Argentina.gob.ar / DNRPA'};
     await h.submit('AB123CD');
-    for (const [label, value] of [['Tipo de vehículo: ', 'AUTOMOTOR'], ['Código postal: ', 'C0000'], ['Teléfono del registro: ', '0000-0000']]) {
+    assert.equal(fields(h.elements.dqResult).find(row => row[0] === 'Fuente: ')[1], 'Argentina.gob.ar / DNRPA');
+    assert.equal(fields(h.elements.dqResult).some(row => row[0] === 'Tipo de vehículo: '), false);
+    answer = {...answer, registro: 'REGISTRO DE PRUEBA', codigoRegistro: '00000', localidad: 'LOCALIDAD DE PRUEBA',
+      provincia: 'PROVINCIA DE PRUEBA', codigoPostal: 'C0000', telefono: '0000-0000', horario: '08:30 a 12:30',
+      fuente: 'Chasis', tipoVehiculo: 'Automotor', titular: 'NO MOSTRAR TITULAR', documento: 'NO MOSTRAR DOCUMENTO',
+      domicilioTitular: 'NO MOSTRAR DOMICILIO', raw: {dato: 'NO MOSTRAR RESPUESTA ORIGINAL'}};
+    await h.submit('AB123CD');
+    assert.deepEqual(fields(h.elements.dqResult).map(row => row[0]), ['Patente: ', 'Tipo de vehículo: ', 'Registro: ', 'Código de registro: ',
+      'Dirección: ', 'Localidad: ', 'Provincia: ', 'Código postal: ', 'Teléfono del registro: ', 'Horario del registro: ', 'Fuente: ', 'Consultado: ']);
+    for (const [label, value] of [['Tipo de vehículo: ', 'Automotor'], ['Código postal: ', 'C0000'], ['Teléfono del registro: ', '0000-0000'],
+      ['Horario del registro: ', '08:30 a 12:30'], ['Fuente: ', 'Chasis']]) {
       assert.equal(fields(h.elements.dqResult).find(row => row[0] === label)[1], value);
     }
-    answer = {...answer, patente: 'AC123CD'};
+    assert.doesNotMatch(h.elements.dqResult.textContent, /Actualizado|NO MOSTRAR/);
+    answer = {...answer, direccion: '<img src=x onerror=alert(1)>', consultadoEn: 'fecha inválida'};
     await h.submit('AB123CD');
-    assert.equal(h.elements.dqResult.dataset.type, 'error');
-    h.context.DattaApi.request = async () => { throw Object.assign(Error(), {code: 'servicio_no_disponible'}); };
+    assert.equal(fields(h.elements.dqResult).find(row => row[0] === 'Dirección: ')[1], '<img src=x onerror=alert(1)>');
+    assert.equal(h.createdTags.includes('img'), false);
+    assert.equal(fields(h.elements.dqResult).some(row => row[0] === 'Consultado: '), false);
+    for (const invalid of [null, [], {}, {...answer, verificado: false}, {...answer, verificado: 'true'},
+      {...answer, patente: 'AC123CD'}, {...answer, patente: 'AB-123-CD'},
+      {verificado: true, patente: 'AB123CD', fuente: 'Argentina.gob.ar / DNRPA', horario: '08:30 a 12:30'}]) {
+      answer = invalid;
+      await h.submit('AB123CD');
+      assert.equal(h.elements.dqResult.dataset.type, 'error');
+      assert.match(h.elements.dqResult.textContent, /No se pudo verificar la radicación/);
+      assert.equal(fields(h.elements.dqResult).length, 0);
+    }
+  });
+
+  await test('radicación admite los cuatro formatos de autos y motos con sólo patente', async () => {
+    const calls = [];
+    const h = harness('radicacion', {DattaApi: {enabled: () => true, request: async (route, payload) => {
+      calls.push({route, payload});
+      return {verificado: true, patente: payload.patente, registro: 'REGISTRO DE PRUEBA'};
+    }}});
+    for (const [input, expected] of [['abc 123', 'ABC123'], ['ab-123-cd', 'AB123CD'], ['123.abc', '123ABC'], ['a123 bcd', 'A123BCD']]) {
+      await h.submit(input);
+      assert.equal(h.elements.dqResult.dataset.type, 'success');
+      assert.equal(calls.at(-1).route, 'radicacion');
+      assert.deepEqual(JSON.parse(JSON.stringify(calls.at(-1).payload)), {patente: expected});
+      assert.equal(fields(h.elements.dqResult)[0][1], expected);
+    }
+    for (const value of ['', '12345678', 'A123BC', '123ABCD', 'ABC1234', 'AB123CÑ', '123/ABC']) {
+      await h.submit(value);
+      assert.equal(h.elements.dqResult.dataset.type, 'error');
+      assert.equal(h.elements.dqValue.attributes['aria-invalid'], 'true');
+    }
+    assert.equal(calls.length, 4);
+  });
+
+  await test('radicación distingue ausencia de datos, fallo de fuente y límites de consultas', async () => {
+    const h = harness('radicacion', {DattaApi: {enabled: () => true}});
+    for (const [code, expected] of [
+      ['formulario_cambiado', /cambió su formulario/], ['fuente_restringida', /restringió el acceso/],
+      ['fuente_no_disponible', /fuente de consulta no está disponible/], ['servicio_no_disponible', /No se pudo completar/],
+      ['respuesta_no_verificada', /No se pudo verificar la radicación/], ['limite_consultas', /Esperá unos minutos/],
+      ['limite_diario', /mañana/]
+    ]) {
+      h.context.DattaApi.request = async () => { throw Object.assign(Error(), {code}); };
+      await h.submit('AB123CD');
+      assert.equal(h.elements.dqResult.dataset.type, 'error');
+      assert.match(h.elements.dqResult.textContent, expected);
+      assert.doesNotMatch(h.elements.dqResult.textContent, /Sin datos de radicación|no registrada|no encontrada|inexistente/i);
+      assert.equal(h.elements.dqForm.button.disabled, false);
+      assert.equal(h.elements.dqForm.attributes['aria-busy'], 'false');
+      assert.equal(h.elements.dqResult.children.some(node => node.tagName === 'A'), false);
+    }
+    h.context.DattaApi.request = async () => { throw Object.assign(Error(), {code: 'radicacion_no_encontrada'}); };
     await h.submit('AB123CD');
-    assert.doesNotMatch(h.elements.dqResult.textContent, /no registrada|no encontrada/i);
+    assert.match(h.elements.dqResult.textContent, /Sin datos de radicación/);
+    assert.match(h.elements.dqResult.textContent, /fuente consultada no devolvió datos/);
+    assert.doesNotMatch(h.elements.dqResult.textContent, /no registrada|inexistente/i);
+  });
+
+  await test('radicación evita dobles envíos y mantiene estados accesibles', async () => {
+    let resolve, calls = 0;
+    const h = harness('radicacion', {DattaApi: {enabled: () => true, request: () => {
+      calls++;
+      return new Promise(done => { resolve = done; });
+    }}});
+    await h.submit('inválida');
+    assert.equal(h.elements.dqValue.attributes['aria-invalid'], 'true');
+    const pending = h.submit('A123BCD');
+    assert.equal(h.elements.dqValue.attributes['aria-invalid'], 'false');
+    assert.equal(h.elements.dqForm.button.disabled, true);
+    assert.equal(h.elements.dqForm.button.textContent, 'Consultando…');
+    assert.equal(h.elements.dqForm.attributes['aria-busy'], 'true');
+    assert.equal(h.elements.dqResult.attributes.role, 'status');
+    await h.submit('ABC123');
+    assert.equal(calls, 1);
+    assert.match(h.elements.dqResult.textContent, /Consultando radicación/);
+    resolve({verificado: true, patente: 'A123BCD', registro: 'REGISTRO DE PRUEBA'});
+    await pending;
+    assert.equal(h.elements.dqResult.dataset.type, 'success');
+    assert.equal(fields(h.elements.dqResult)[0][1], 'A123BCD');
+    assert.equal(h.elements.dqForm.button.disabled, false);
+    assert.equal(h.elements.dqForm.button.textContent, 'Consultar patente');
+    assert.equal(h.elements.dqForm.attributes['aria-busy'], 'false');
+    const html = fs.readFileSync(path.join(root, 'otros-servicios/radicacion/index.html'), 'utf8');
+    assert.match(html, /<label for="dqValue"/);
+    assert.match(html, /aria-describedby="dqPatenteHelp dqResult"/);
+    assert.match(html, /id="dqPatenteHelp"/);
+    assert.match(html, /id="dqResult"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/);
   });
 
   await test('CUIL y radicación rechazan basura sin consultar y admiten separadores habituales', async () => {

@@ -74,7 +74,8 @@ export async function consultarCuilAfipSdk({
     try {
       response = await fetchImpl(`${API_BASE}/${path}`, {
         method: 'POST',
-        redirect: 'error',
+        // Workers admite manual; la respuesta se rechaza sin seguir Location.
+        redirect: 'manual',
         headers: {
           'Authorization': `Bearer ${accessToken.trim()}`,
           'Content-Type': 'application/json',
@@ -87,6 +88,8 @@ export async function consultarCuilAfipSdk({
       throw failure('servicio_no_disponible', 503);
     }
     if (!response || typeof response.ok !== 'boolean') throw failure('respuesta_no_verificada', 502);
+    if (response.redirected) throw failure('respuesta_no_verificada', 502);
+    if (response.status >= 300 && response.status < 400) throw failure('servicio_no_disponible', 503);
     if (!response.ok) {
       if (response.status === 402 || response.status === 429) throw failure('limite_consultas', 429);
       if (response.status === 401 || response.status === 403) throw failure('proveedor_sin_configurar', 503);

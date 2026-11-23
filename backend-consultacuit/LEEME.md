@@ -1,5 +1,19 @@
 # ConsultaCUIT para DattaQuest
 
+## Versión 11: consulta de radicación
+
+El mismo servicio incorpora `POST /api/radicacion`, mediante el formulario público de Argentina.gob.ar. Utiliza el adaptador `../backend-cloudflare/proveedores/argentina-radicacion.mjs`; no utiliza la API privada del Gobierno ni el proveedor pago Chasis.
+
+Admite formatos nacionales de autos y motos. Devuelve exclusivamente los datos del registro seccional y una fecha de **consulta**, que no es la fecha de actualización de la base. Comparte con CUIL los límites preventivos de frecuencia y el origen permitido.
+
+`GET /api/radicacion/status` carga únicamente el formulario: su resultado positivo confirma estructura y acceso, no una consulta completa de patente. Por eso siempre incluye `consultaPatenteVerificada: false`. No se prueba con patentes o documentos de personas.
+
+La configuración pública específica está en `otros-servicios/radicacion/js/config.js`; un endpoint vacío desactiva la consulta. Se mantiene así si la fuente rechaza el acceso normal del conector. No se omiten CAPTCHA ni se siguen redirecciones o destinos enviados por la fuente.
+
+La investigación de cobertura, alternativas gratuitas/con registro, costos y restricciones está en [FUENTES_CONSULTAS_LEEME.md](../FUENTES_CONSULTAS_LEEME.md).
+
+## Consulta por DNI
+
 El formulario recibe sólo DNI y presenta el CUIT personal encontrado en el padrón tributario. El proveedor no distingue un CUIL de ANSES: el conector etiqueta su respuesta como **CUIT**. El frontend también conserva compatibilidad con un CUIL confirmado por el adaptador anterior.
 
 ## Funcionamiento
