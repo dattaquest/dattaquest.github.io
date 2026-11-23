@@ -46,6 +46,14 @@ function registryCode(value) {
   throw fail('respuesta_no_verificada', 502);
 }
 
+function vehicleType(value) {
+  if (value == null) return null;
+  // Enum documentado de Consulta; no inferir el tipo por la patente.
+  if (value === 'automotor') return 'Automotor';
+  if (value === 'moto') return 'Motovehículo';
+  throw fail('respuesta_no_verificada', 502);
+}
+
 function isoDate(value) {
   if (typeof value !== 'string') return null;
   const parts = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,3})?(?:Z|[+-](\d{2}):(\d{2}))$/.exec(value);
@@ -122,6 +130,7 @@ export async function consultarRadicacionChasis({ patente, apiKey, fetchImpl = f
   }
   if (raw.registro != null && !record(raw.registro)) throw fail('respuesta_no_verificada', 502);
   if (raw.reutilizada != null && typeof raw.reutilizada !== 'boolean') throw fail('respuesta_no_verificada', 502);
+  const tipoVehiculo = vehicleType(raw.tipo);
 
   const reg = raw.registro || {};
   // Lista blanca: nunca devolver titulares, documentos ni otros campos extra.
@@ -137,6 +146,7 @@ export async function consultarRadicacionChasis({ patente, apiKey, fetchImpl = f
   return {
     verificado: true,
     patente: normalized,
+    tipoVehiculo,
     ...location,
     consultadoEn: isoDate(raw.consultadoEn),
     vigenteHasta: isoDate(raw.vigenteHasta),

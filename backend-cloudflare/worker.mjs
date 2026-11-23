@@ -1,6 +1,7 @@
 /* DattaQuest. Las credenciales y la comunicación con proveedores viven en el servidor. */
 import { consultarCuilAfipSdk } from './proveedores/afipsdk-cuil.mjs';
 import { consultarRadicacionChasis } from './proveedores/chasis-radicacion.mjs';
+import { argentinaQuotaWindow } from './cuotas.mjs';
 export { ConsultaQuota } from './cuotas.mjs';
 
 const services = {
@@ -12,6 +13,7 @@ const services = {
 const has = value => typeof value === 'string' && value.trim().length > 0;
 const fail = (code, status = 503) => Object.assign(new Error(code), { code, status });
 const positiveLimit = value => /^\d+$/.test(String(value)) && Number(value) > 0 && Number(value) <= 100000;
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function httpsEndpoint(value) {
   try { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password && !url.hash; }
   catch { return false; }
@@ -23,7 +25,7 @@ function configured(route, env) {
   return httpsEndpoint(env[services[route].variable]) && positiveLimit(env.OTHER_DAILY_LIMIT);
 }
 function protectedService(env) {
-  return has(env.TURNSTILE_SECRET_KEY) && typeof env.REQUEST_LIMITER?.limit === 'function' &&
+  return typeof env.REQUEST_LIMITER?.limit === 'function' &&
     typeof env.CONSULTA_QUOTA?.idFromName === 'function' && typeof env.CONSULTA_QUOTA?.get === 'function';
 }
 function reply(status, data, cors = {}, extra = {}) {
@@ -54,32 +56,27 @@ async function readBody(request) {
     return data;
   } catch { throw fail('json_invalido', 400); }
 }
-async function verifyVisitor(request, body, route, allowed, env, fetchImpl, signal) {
+async function reserveConsultation(request, requestId, route, env) {
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
   const limited = await env.REQUEST_LIMITER.limit({ key: ip });
   if (!limited?.success) throw fail('limite_consultas', 429);
-  const token = body.turnstileToken;
-  if (typeof token !== 'string' || !token || token.length > 2048) throw fail('verificacion_requerida', 403);
-  const response = await fetchImpl('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-    method: 'POST', redirect: 'error', signal,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ secret: env.TURNSTILE_SECRET_KEY, response: token, ...(ip !== 'unknown' ? { remoteip: ip } : {}) }),
-  });
-  if (!response.ok) throw fail('verificacion_no_disponible');
-  const verified = await response.json();
-  if (verified.success !== true || verified.hostname !== new URL(allowed).hostname ||
-      verified.action !== route.replace('/', '_')) throw fail('verificacion_requerida', 403);
-  // Siteverify puede aprobar canjes concurrentes del mismo token. La reserva
-  // central lo deduplica con un hash antes de cualquier consulta al proveedor.
-  // No guarda tokens originales, documentos, patentes, resultados ni IP.
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
-  const tokenHash = Array.from(new Uint8Array(digest), value => value.toString(16).padStart(2, '0')).join('');
+  // El UUID identifica un intento para evitar cobros duplicados concurrentes.
+  // No autentica al visitante. El consumo se limita por IP y cupo global.
+  // La reserva guarda sólo el hash temporal, nunca el UUID, la IP ni la consulta.
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify([requestId.toLowerCase(), route, ip])));
+  const requestHash = Array.from(new Uint8Array(digest), value => value.toString(16).padStart(2, '0')).join('');
   const counter = env.CONSULTA_QUOTA.get(env.CONSULTA_QUOTA.idFromName('consultas-diarias'));
   const reservation = await counter.fetch('https://quota.internal/reserve', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ service: route, tokenHash }),
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ service: route, requestHash }),
   });
-  if (reservation.status === 409) throw fail('verificacion_requerida', 403);
-  if (!reservation.ok) throw fail(reservation.status === 429 ? 'limite_consultas' : 'proteccion_sin_configurar', reservation.status === 429 ? 429 : 503);
+  if (reservation.status === 409) throw fail('solicitud_duplicada', 409);
+  if (reservation.status === 429) {
+    const value = reservation.headers.get('Retry-After');
+    const retryAfter = /^\d{1,5}$/.test(value || '') && Number(value) > 0 && Number(value) <= 86400
+      ? Number(value) : argentinaQuotaWindow().retryAfter;
+    throw Object.assign(fail('limite_diario', 429), { retryAfter });
+  }
+  if (reservation.status !== 204) throw fail('proteccion_sin_configurar');
 }
 async function optionalProvider(route, input, env, fetchImpl, signal) {
   const variable = services[route].variable;
@@ -113,8 +110,12 @@ export function createWorker({ fetchImpl = (...args) => fetch(...args) } = {}) {
       const path = new URL(request.url).pathname.replace(/^\/api\//, '');
       if (request.method === 'GET' && path === 'status') {
         if (origin && origin !== allowed) return reply(403, { error: 'origen_no_permitido' }, cors);
-        return reply(200, { servicios: Object.fromEntries(Object.keys(services).map(route =>
-          [route, configured(route, env) && protectedService(env)])) }, cors);
+        const servicios = Object.fromEntries(Object.keys(services).map(route =>
+          [route, configured(route, env) && protectedService(env)]));
+        // Presencia de configuración local: no prueba autorización ni saldo del proveedor.
+        const diagnostico = Object.fromEntries(Object.entries(servicios).map(([route, completa]) =>
+          [route, { configuracionCompleta: completa, estado: completa ? 'listo_para_verificar' : 'configuracion_requerida' }]));
+        return reply(200, { version: 9, servicios, diagnostico }, cors);
       }
       if (origin !== allowed) return reply(403, { error: 'origen_no_permitido' }, cors);
       if (!Object.hasOwn(services, path)) return reply(404, { error: 'no_disponible' }, cors);
@@ -124,10 +125,10 @@ export function createWorker({ fetchImpl = (...args) => fetch(...args) } = {}) {
       try {
         const body = await readBody(request); const service = services[path];
         const input = typeof body[service.name] === 'string' ? body[service.name].trim() : '';
-        if (!service.pattern.test(input)) throw fail('dato_invalido', 400);
+        if (!service.pattern.test(input) || typeof body.requestId !== 'string' || !UUID_V4.test(body.requestId)) throw fail('dato_invalido', 400);
         if (!configured(path, env)) throw fail('proveedor_sin_configurar');
         if (!protectedService(env)) throw fail('proteccion_sin_configurar');
-        await verifyVisitor(request, body, path, allowed, env, fetchImpl, controller.signal);
+        await reserveConsultation(request, body.requestId, path, env);
         let output;
         if (path === 'cuil') output = await consultarCuilAfipSdk({ dni: input,
           accessToken: env.AFIPSDK_ACCESS_TOKEN, cuitRepresentada: env.ARCA_CUIT_REPRESENTADA,
