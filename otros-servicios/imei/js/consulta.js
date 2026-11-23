@@ -1,80 +1,40 @@
-/* DattaQuest — IMEI: presentación legible por campos, sin HTML de terceros. */
+/* IMEI: presentación por campos, sin HTML de terceros. */
 (function () {
   'use strict';
-
   const form = document.getElementById('dqForm');
   const resultId = 'dqResult';
-  const warning = 'Un IMEI válido NO garantiza que el dispositivo sea auténtico ni que funcione en la red.';
 
-  function addLine(container, label, value) {
-    const line = document.createElement('p');
-    line.className = 'dq-imei-line';
-
-    const key = document.createElement('span');
-    key.className = 'dq-imei-label';
-    key.textContent = label + ': ';
-
-    const text = document.createElement('span');
-    text.textContent = value + (/[.!?]$/.test(value) ? '' : '.');
-
-    line.append(key, text);
-    container.appendChild(line);
-  }
-
-
-  // La fuente complementaria contiene la errata XAIOMI y modelos duplicados.
-  // Normalizamos exclusivamente la presentación; nunca alteramos el TAC.
+  // Corregimos la errata y repetición de Xiaomi sólo en la presentación.
   function normalizeDevice(device) {
     if (!device || typeof device.brand !== 'string') return device;
     const brand = device.brand.trim();
     if (!/^(?:XAIOMI|XIAOMI)$/i.test(brand)) return device;
-    let model = String(device.model || 'Sin información').trim()
+    const model = String(device.model || 'Sin información').trim()
       .replace(/\b(?:XAIOMI|XIAOMI)\b/gi, 'Xiaomi')
       .replace(/^Xiaomi\s*[,;]\s*(?=Xiaomi\b)/i, '');
     return {...device, brand: 'Xiaomi', model};
   }
 
-  function displayResult(imei, device, blockStatus, blockSource) {
-    const box = document.getElementById(resultId);
-    box.textContent = '';
-    box.dataset.type = 'success';
-    box.classList.add('is-visible');
-    box.setAttribute('role', 'status');
-
-    const heading = document.createElement('strong');
-    heading.textContent = device && device.brand
-      ? 'Equipo identificado · IMEI válido'
-      : 'IMEI válido · consulta de modelo';
-    box.appendChild(heading);
-
+  function displayResult(imei, device, blockStatus) {
+    const rows = [['Formato de IMEI', 'Válido']];
     if (device && device.brand) {
-      addLine(box, 'Marca', device.brand);
-      addLine(box, 'Modelo', device.model || 'Sin información');
-      addLine(box, 'Fuente', device.source || 'Catálogo TAC consultado');
+      rows.push(['Marca', device.brand], ['Modelo', device.model || 'Sin información']);
     } else {
-      addLine(box, 'TAC', imei.slice(0, 8));
-      addLine(box, 'Modelo', device && device.unavailable
-        ? 'No disponible porque no se pudo consultar el catálogo TAC'
-        : 'No identificado en la base TAC consultada');
+      rows.push(['TAC', imei.slice(0, 8)], ['Modelo', device && device.unavailable
+        ? 'Consulta temporalmente no disponible' : 'No identificado']);
     }
-    addLine(box, 'Estado de bloqueo', blockStatus);
-    if (blockSource) addLine(box, 'Fuente del estado de bloqueo', blockSource);
-
-    const notice = document.createElement('p');
-    notice.className = 'dq-imei-warning';
-    notice.textContent = warning;
-    box.appendChild(notice);
-    DattaUtil.action(resultId, 'Consultar bloqueo en el verificador oficial ENACOM',
-      'https://www.enacom.gob.ar/imei');
+    rows.push(['Estado de bloqueo', blockStatus]);
+    DattaUtil.fields(resultId, device && device.brand ? 'Equipo identificado' : 'Verificación de IMEI', rows, 'success');
+    if (blockStatus === 'No verificado' || blockStatus === 'No determinado') {
+      DattaUtil.action(resultId, 'Consultar bloqueo en ENACOM', 'https://www.enacom.gob.ar/imei');
+    }
   }
 
-  form.addEventListener('submit', async function (event) {
+  form.addEventListener('submit', async event => {
     event.preventDefault();
     const imei = DattaUtil.onlyDigits(document.getElementById('dqValue').value);
-
     if (!/^\d{15}$/.test(imei)) {
-      DattaUtil.result(resultId, 'IMEI no válido',
-        'El IMEI debe contener exactamente 15 dígitos.', 'error');
+      DattaUtil.result(resultId, 'IMEI no válido', 'El IMEI debe contener exactamente 15 dígitos.', 'error');
       return;
     }
     let sum = 0;
@@ -87,47 +47,27 @@
       sum += digit;
     }
     if (sum % 10 !== 0) {
-      DattaUtil.result(resultId, 'Error de control',
-        'IMEI de 15 dígitos, pero no supera la verificación Luhn.', 'error');
+      DattaUtil.result(resultId, 'Error de control', 'El IMEI no supera la verificación de su dígito de control.', 'error');
       return;
     }
-
     const button = form.querySelector('button[type=submit]');
     button.disabled = true;
-    DattaUtil.result(resultId, 'Formato IMEI válido',
-      'Buscando marca y modelo en la base comunitaria TAC...', 'info');
-
+    DattaUtil.result(resultId, 'Consultando IMEI', 'Buscando marca y modelo...', 'info');
     try {
       const device = normalizeDevice(await DattaTac.lookup(imei.slice(0, 8)));
-      let blockStatus = 'NO VERIFICADO; falta API autorizada de listas negras';
-      let blockSource = '';
-
-      if (DattaApi.enabled()) {
+      let blockStatus = 'No verificado';
+      if (DattaApi.enabled('imei/estado')) {
         try {
           const response = await DattaApi.request('imei/estado', {imei});
-          if (response.verificado === true &&
-              ['bloqueado', 'no_reportado', 'desconocido'].includes(response.estado)) {
-            blockStatus = response.estado === 'bloqueado'
-              ? 'BLOQUEADO'
-              : response.estado === 'no_reportado'
-                ? 'Sin reporte en la fuente consultada'
-                : 'No determinado';
-            blockSource = response.fuente || 'Proveedor autorizado';
-          } else {
-            blockStatus = 'NO VERIFICADO';
+          if (response.verificado === true && ['bloqueado', 'no_reportado', 'desconocido'].includes(response.estado)) {
+            blockStatus = response.estado === 'bloqueado' ? 'Bloqueado'
+              : response.estado === 'no_reportado' ? 'Sin reporte de bloqueo' : 'No determinado';
           }
-        } catch (error) {
-          blockStatus = 'NO VERIFICADO (API no disponible)';
-        }
+        } catch (ignore) {}
       }
-
-      displayResult(imei, device, blockStatus, blockSource);
+      displayResult(imei, device, blockStatus);
     } catch (error) {
-      DattaUtil.result(resultId, 'Formato IMEI válido',
-        'No se pudo consultar el catálogo TAC. El estado de bloqueo no fue verificado.',
-        'info');
-    } finally {
-      button.disabled = false;
-    }
+      DattaUtil.result(resultId, 'Formato IMEI válido', 'No se pudo consultar el modelo. Intentá nuevamente.', 'info');
+    } finally { button.disabled = false; }
   });
 })();

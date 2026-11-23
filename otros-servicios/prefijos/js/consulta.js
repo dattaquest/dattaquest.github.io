@@ -1,34 +1,36 @@
-/* Búsqueda por código de área, número o localidad (datos ENACOM publicados localmente). */
+/* Búsqueda por código de área, número o localidad. */
 (function () {
   'use strict';
   const form = document.getElementById('dqForm');
   const result = document.getElementById('dqResult');
-  let areas, meta;
+  let areas, loading;
   function normal(value) {
     return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim();
   }
-  function fuente() {
-    return meta && meta.sha256
-      ? 'Fuente: ENACOM (' + meta.indicativos + ' indicativos, SHA-256 ' +
-        meta.sha256.slice(0, 12) + '…).'
-      : 'Fuente: base local DattaQuest.';
+  function load() {
+    if (!loading) loading = fetch('./data/prefijos.json').then(response => {
+      if (!response.ok) throw Error('datos');
+      return response.json();
+    }).then(data => {
+      if (!Array.isArray(data) || !data.length) throw Error('formato');
+      areas = data;
+    }).catch(error => { loading = null; throw error; });
+    return loading;
   }
-  Promise.all([
-    fetch('./data/prefijos.json').then(r => { if (!r.ok) throw Error('datos'); return r.json(); }),
-    fetch('./data/fuente.json').then(r => r.ok ? r.json() : null).catch(() => null)
-  ]).then(values => {
-    if (!Array.isArray(values[0])) throw Error('formato');
-    areas = values[0];
-    meta = values[1];
-  }).catch(() => DattaUtil.result('dqResult', 'Base no disponible',
-    'No se pudo cargar el catálogo local de prefijos.', 'error'));
+  function rows(area) {
+    return [['Código de área', area.codigo], ['Área cabecera', area.localidad], ['Provincia', area.provincia]];
+  }
+  load().catch(() => DattaUtil.result('dqResult', 'Consulta no disponible',
+    'No se pudieron cargar los prefijos. Intentá nuevamente.', 'error'));
 
-  form.addEventListener('submit', event => {
+  form.addEventListener('submit', async event => {
     event.preventDefault();
     if (!areas) {
-      DattaUtil.result('dqResult','Base no disponible','Probá de nuevo cuando cargue.', 'error');
-      return;
+      try { await load(); } catch (error) {
+        DattaUtil.result('dqResult', 'Consulta no disponible', 'No se pudieron cargar los prefijos. Intentá nuevamente.', 'error');
+        return;
+      }
     }
     const value = document.getElementById('dqValue').value.trim();
     if (/[a-záéíóúüñ]/i.test(value)) {
@@ -38,57 +40,48 @@
           'Escribí al menos tres letras de una localidad o provincia.', 'error');
         return;
       }
-      const matches = areas.filter(a =>
-        normal(a.localidad).includes(query) || normal(a.provincia).includes(query))
-        .sort((a,b) => {
-          const rank = x => normal(x.localidad) === query ? 0 :
-            normal(x.localidad).startsWith(query) ? 1 : 2;
+      const matches = areas.filter(area =>
+        normal(area.localidad).includes(query) || normal(area.provincia).includes(query))
+        .sort((a, b) => {
+          const rank = area => normal(area.localidad) === query ? 0 :
+            normal(area.localidad).startsWith(query) ? 1 : 2;
           return rank(a) - rank(b) || a.localidad.localeCompare(b.localidad, 'es');
         });
       if (!matches.length) {
-        DattaUtil.result('dqResult','Sin coincidencias',
-          'No se encontró esa localidad en la publicación local. ' + fuente(), 'info');
+        DattaUtil.result('dqResult', 'Sin coincidencias', 'No se encontró esa localidad o provincia.', 'info');
         return;
       }
-      DattaUtil.result('dqResult','Coincidencias encontradas: ' + matches.length,
-        'Son áreas cabecera de numeración, no la ubicación física de una persona. ' + fuente(),
-        'success');
+      DattaUtil.result('dqResult', 'Coincidencias encontradas: ' + matches.length, '', 'success');
       const list = document.createElement('ul');
       list.className = 'dq-prefijos-coincidencias';
-      matches.slice(0,30).forEach(item => {
-        const li=document.createElement('li');
-        const code=document.createElement('b');
-        code.textContent=item.codigo+' — ';
-        li.append(code,document.createTextNode(item.localidad +
-          (item.provincia?' · '+item.provincia:'')));
-        list.appendChild(li);
+      matches.slice(0, 30).forEach(area => {
+        const item = document.createElement('li');
+        item.appendChild(DattaUtil.fieldList(rows(area)));
+        list.appendChild(item);
       });
       result.appendChild(list);
-      if(matches.length>30){
-        const note=document.createElement('p');
-        note.textContent='Se muestran las primeras 30; refiná la búsqueda para ver más.';
+      if (matches.length > 30) {
+        const note = document.createElement('p');
+        note.textContent = 'Se muestran las primeras 30; refiná la búsqueda para ver más.';
         result.appendChild(note);
       }
       return;
     }
-    let n=DattaUtil.onlyDigits(value);
-    if(n.startsWith('549')&&n.length>11)n=n.slice(3);
-    else if(n.startsWith('54')&&n.length>10)n=n.slice(2);
-    if(n.startsWith('0'))n=n.slice(1);
-    if(n.length<2){
-      DattaUtil.result('dqResult','Prefijo incorrecto','Ingresá un código de área argentino.','error');
+    let number = DattaUtil.onlyDigits(value);
+    if (number.startsWith('549') && number.length > 11) number = number.slice(3);
+    else if (number.startsWith('54') && number.length > 10) number = number.slice(2);
+    if (number.startsWith('0')) number = number.slice(1);
+    if (number.length < 2) {
+      DattaUtil.result('dqResult', 'Prefijo incorrecto', 'Ingresá un código de área argentino.', 'error');
       return;
     }
-    const a=areas.find(x=>x.codigo===n) ||
-      areas.filter(x=>n.startsWith(x.codigo)&&n.length>x.codigo.length)
-        .sort((x,y)=>y.codigo.length-x.codigo.length)[0];
-    if(!a){
-      DattaUtil.result('dqResult','Sin coincidencia',
-        'No se encontró el código en la base publicada. '+fuente(),'info');
+    const area = areas.find(item => item.codigo === number) ||
+      areas.filter(item => number.startsWith(item.codigo) && number.length > item.codigo.length)
+        .sort((a, b) => b.codigo.length - a.codigo.length)[0];
+    if (!area) {
+      DattaUtil.result('dqResult', 'Sin coincidencias', 'No se encontró un área para ese código.', 'info');
       return;
     }
-    DattaUtil.result('dqResult','Área '+a.codigo+' · '+a.localidad,
-      (a.provincia?'Provincia: '+a.provincia+'. ':'')+
-      'Indica el área de numeración, no la ubicación actual ni el operador. '+fuente(),'success');
+    DattaUtil.fields('dqResult', 'Prefijo telefónico', rows(area), 'success');
   });
 })();

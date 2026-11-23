@@ -1,17 +1,56 @@
-(function(){
-'use strict';
-const f=document.getElementById('dqForm');
-f.addEventListener('submit',async function(e){e.preventDefault();
- const d=DattaUtil.onlyDigits(document.getElementById('dqValue').value);
- if(!/^\d{7,8}$/.test(d)){DattaUtil.result('dqResult','DNI no válido','Ingresá un DNI de 7 u 8 dígitos.','error');return;}
- const official='https://www.argentina.gob.ar/descarga-constancia-cuil';
- if(!DattaApi.enabled()){DattaUtil.result('dqResult','Consultá tu CUIL en ANSES','El DNI solo no permite confirmar un CUIL asignado. Para obtener una constancia real completá los datos personales requeridos por ANSES. No transmitimos ni guardamos tu DNI.','info');DattaUtil.action('dqResult','Obtener constancia oficial de CUIL',official);return;}
- const btn=f.querySelector('button[type=submit]');btn.disabled=true;DattaUtil.result('dqResult','Consultando','Solicitando verificación a la API autorizada...','info');
- try {const x=await DattaApi.request('cuil',{dni:d});
-  const c=String(x.cuil||'').replace(/\D/g,'');
-  if(x.verificado!==true||!/^\d{11}$/.test(c)||c.substring(2,10)!==d.padStart(8,'0')||!check(c))throw new Error('API_BAD_RESPONSE');
-  DattaUtil.result('dqResult','CUIL confirmado',c.slice(0,2)+'-'+c.slice(2,10)+'-'+c.slice(10)+' · Fuente: '+(x.fuente||'Proveedor autorizado')+'.','success');
- }catch(err){DattaUtil.result('dqResult','No se pudo verificar el CUIL','La API no confirmó el CUIL. Por seguridad, no calculamos ni mostramos uno supuesto.','error');DattaUtil.action('dqResult','Consultar en ANSES',official);}finally{btn.disabled=false;}
- });
- function check(c){const weights=[5,4,3,2,7,6,5,4,3,2];let sum=0;for(let i=0;i<10;i++)sum+=Number(c[i])*weights[i];let digit=11-(sum%11);if(digit===11)digit=0;if(digit===10)return false;return digit===Number(c[10]);}
+(function () {
+  'use strict';
+  const form = document.getElementById('dqForm');
+  const official = 'https://www.argentina.gob.ar/descarga-constancia-cuil';
+  const errors = {
+    proteccion_sin_configurar: ['Servicio temporalmente no disponible', 'Intentá nuevamente en unos minutos.'],
+    verificacion_no_disponible: ['Servicio temporalmente no disponible', 'Intentá nuevamente en unos minutos.'],
+    proveedor_no_autorizado: ['Servicio temporalmente no disponible', 'Intentá nuevamente en unos minutos.'],
+    dni_ambiguo: ['Se necesita una verificación adicional', 'El documento tiene más de una clave asociada. Consultá tu constancia de CUIL.'],
+    cuil_no_encontrado: ['CUIL no encontrado', 'La consulta no devolvió un CUIL para ese documento. Podés comprobarlo en tu constancia.'],
+    clave_no_es_cuil: ['CUIL sin confirmar', 'Se encontró una clave de otro tipo. Consultá tu constancia para verificar el CUIL.'],
+    proveedor_sin_configurar: ['Consulta automática no habilitada', 'Podés obtener tu constancia de CUIL en ANSES.'],
+    verificacion_requerida: ['Verificación pendiente', 'Completá la verificación y volvé a consultar.'],
+    limite_consultas: ['Límite de consultas alcanzado', 'Esperá unos minutos antes de volver a consultar.']
+  };
+
+  function check(cuil) {
+    const weights = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+    let sum = 0;
+    for (let i = 0; i < 10; i++) sum += Number(cuil[i]) * weights[i];
+    let digit = 11 - (sum % 11);
+    if (digit === 11) digit = 0;
+    return digit !== 10 && digit === Number(cuil[10]);
+  }
+
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const dni = DattaUtil.onlyDigits(document.getElementById('dqValue').value);
+    if (!/^\d{7,8}$/.test(dni)) {
+      DattaUtil.result('dqResult', 'DNI no válido', 'Ingresá un DNI de 7 u 8 dígitos.', 'error');
+      return;
+    }
+    if (!DattaApi.enabled('cuil')) {
+      DattaUtil.result('dqResult', 'Consulta automática no habilitada', 'Podés obtener tu constancia de CUIL en ANSES.', 'info');
+      DattaUtil.action('dqResult', 'Obtener constancia de CUIL', official);
+      return;
+    }
+    const button = form.querySelector('button[type=submit]');
+    button.disabled = true;
+    DattaUtil.result('dqResult', 'Consultando CUIL', 'Buscando la clave asociada al documento...', 'info');
+    try {
+      const data = await DattaApi.request('cuil', {dni});
+      const cuil = String(data.cuil || '').replace(/\D/g, '');
+      if (data.verificado !== true || data.tipoClave !== 'CUIL' || !/^\d{11}$/.test(cuil) ||
+          cuil.slice(2, 10) !== dni.padStart(8, '0') || !check(cuil)) throw Error('API_BAD_RESPONSE');
+      DattaUtil.fields('dqResult', 'CUIL confirmado', [
+        ['CUIL', cuil.slice(0, 2) + '-' + cuil.slice(2, 10) + '-' + cuil.slice(10)],
+        ['DNI', dni]
+      ], 'success');
+    } catch (error) {
+      const message = errors[error.code] || ['No se pudo verificar el CUIL', 'La consulta no pudo completarse. Intentá nuevamente o consultá tu constancia.'];
+      DattaUtil.result('dqResult', message[0], message[1], 'error');
+      DattaUtil.action('dqResult', 'Consultar constancia de CUIL', official);
+    } finally { button.disabled = false; }
+  });
 })();

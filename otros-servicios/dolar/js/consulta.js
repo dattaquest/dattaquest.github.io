@@ -1,1 +1,83 @@
-(function(){'use strict';var api='https://dolarapi.com/v1/dolares',key='datta_dolar_v1',ttl=3*60*60*1000;var btn=document.getElementById('dqRefresh'),updated=document.getElementById('dqUpdated'),grid=document.getElementById('dqQuotes');var names={oficial:'Dólar oficial',blue:'Dólar blue',bolsa:'Dólar MEP / bolsa',contadoconliqui:'Contado con liquidación',mayorista:'Dólar mayorista',cripto:'Dólar cripto',tarjeta:'Dólar tarjeta / turista'};function money(n){return typeof n==='number'&&Number.isFinite(n)?new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:2}).format(n):'No disponible';}function render(items){grid.textContent='';var filtered=items.filter(function(x){return x&&names[x.casa];});if(!filtered.length){DattaUtil.result('dqResult','Sin cotizaciones','La fuente respondió sin cotizaciones reconocibles.','error');return;}document.getElementById('dqResult').classList.remove('is-visible');filtered.forEach(function(q){var card=document.createElement('article');card.className='dq-quote';var h=document.createElement('h3');h.textContent=names[q.casa];card.appendChild(h);var cols=document.createElement('div');cols.className='dq-prices';[['Compra',q.compra],['Venta',q.venta]].forEach(function(pair){var c=document.createElement('div'),label=document.createElement('small'),value=document.createElement('strong');label.textContent=pair[0];value.textContent=money(pair[1]);c.append(label,value);cols.appendChild(c);});card.appendChild(cols);if(q.fechaActualizacion){var time=document.createElement('time'),d=new Date(q.fechaActualizacion);time.textContent='Actualizado: '+(Number.isNaN(d.getTime())?'sin fecha':new Intl.DateTimeFormat('es-AR',{dateStyle:'short',timeStyle:'short',timeZone:'America/Argentina/Buenos_Aires'}).format(d)+' (Argentina)');card.appendChild(time);}grid.appendChild(card);});}function load(force){btn.disabled=true;updated.textContent='Consultando...';if(!force){try{var c=JSON.parse(localStorage.getItem(key));if(c&&Array.isArray(c.data)&&Date.now()-c.saved<ttl){render(c.data);updated.textContent='Datos en caché (menos de 3 horas).';btn.disabled=false;return;}}catch(e){}}var controller=new AbortController();var timeout=setTimeout(function(){controller.abort();},12000);fetch(api,{signal:controller.signal,cache:'no-store'}).then(function(r){if(!r.ok)throw Error('HTTP '+r.status);return r.json();}).then(function(data){if(!Array.isArray(data))throw Error('Respuesta inválida');render(data);try{localStorage.setItem(key,JSON.stringify({saved:Date.now(),data:data}));}catch(e){}updated.textContent='Datos recibidos de DolarApi.';}).catch(function(){var cached;try{cached=JSON.parse(localStorage.getItem(key));}catch(e){}if(cached&&Array.isArray(cached.data)){render(cached.data);updated.textContent='Sin conexión: mostrando datos anteriores (pueden estar desactualizados).';}else{DattaUtil.result('dqResult','Cotizaciones no disponibles','No se pudieron cargar los valores. Verificá tu conexión e intentá nuevamente.','error');updated.textContent='No fue posible conectar con DolarApi.';}}).finally(function(){clearTimeout(timeout);btn.disabled=false;});}btn.addEventListener('click',function(){load(true);});load(false);})();
+(function () {
+  'use strict';
+  const api = 'https://dolarapi.com/v1/dolares';
+  const key = 'datta_dolar_v1';
+  const ttl = 3 * 60 * 60 * 1000;
+  const button = document.getElementById('dqRefresh');
+  const updated = document.getElementById('dqUpdated');
+  const grid = document.getElementById('dqQuotes');
+  const names = {oficial: 'Dólar oficial', blue: 'Dólar blue', bolsa: 'Dólar MEP / bolsa',
+    contadoconliqui: 'Contado con liquidación', mayorista: 'Dólar mayorista',
+    cripto: 'Dólar cripto', tarjeta: 'Dólar tarjeta / turista'};
+  function money(value) {
+    return typeof value === 'number' && Number.isFinite(value)
+      ? new Intl.NumberFormat('es-AR', {style: 'currency', currency: 'ARS', maximumFractionDigits: 2}).format(value)
+      : 'Sin información';
+  }
+  function render(items) {
+    grid.textContent = '';
+    const quotes = items.filter(item => item && Object.hasOwn(names, item.casa));
+    if (!quotes.length) {
+      DattaUtil.result('dqResult', 'Sin cotizaciones', 'No se recibieron cotizaciones para mostrar.', 'error');
+      return;
+    }
+    document.getElementById('dqResult').classList.remove('is-visible');
+    quotes.forEach(quote => {
+      const card = document.createElement('article');
+      card.className = 'dq-quote';
+      const heading = document.createElement('h3');
+      heading.textContent = names[quote.casa];
+      card.appendChild(heading);
+      const rows = [['Compra', money(quote.compra)], ['Venta', money(quote.venta)]];
+      if (quote.fechaActualizacion) {
+        const date = new Date(quote.fechaActualizacion);
+        if (!Number.isNaN(date.getTime())) rows.push(['Actualizado', new Intl.DateTimeFormat('es-AR', {
+          dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Argentina/Buenos_Aires'
+        }).format(date)]);
+      }
+      card.appendChild(DattaUtil.fieldList(rows));
+      grid.appendChild(card);
+    });
+  }
+  async function load(force) {
+    button.disabled = true;
+    updated.textContent = 'Consultando...';
+    if (!force) {
+      try {
+        const cached = JSON.parse(localStorage.getItem(key));
+        if (cached && Array.isArray(cached.data) && Date.now() - cached.saved < ttl) {
+          render(cached.data);
+          updated.textContent = 'Últimas cotizaciones guardadas.';
+          button.disabled = false;
+          return;
+        }
+      } catch (ignore) {}
+    }
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    try {
+      const response = await fetch(api, {signal: controller.signal, cache: 'no-store'});
+      if (!response.ok) throw Error('HTTP_' + response.status);
+      const data = await response.json();
+      if (!Array.isArray(data)) throw Error('RESPUESTA_INVALIDA');
+      render(data);
+      try { localStorage.setItem(key, JSON.stringify({saved: Date.now(), data})); } catch (ignore) {}
+      updated.textContent = 'Cotizaciones actualizadas.';
+    } catch (error) {
+      let cached;
+      try { cached = JSON.parse(localStorage.getItem(key)); } catch (ignore) {}
+      if (cached && Array.isArray(cached.data)) {
+        render(cached.data);
+        updated.textContent = 'Sin conexión: se muestran cotizaciones anteriores.';
+      } else {
+        DattaUtil.result('dqResult', 'Cotizaciones no disponibles', 'No se pudieron cargar los valores. Intentá nuevamente.', 'error');
+        updated.textContent = 'No se pudo actualizar.';
+      }
+    } finally {
+      clearTimeout(timeout);
+      button.disabled = false;
+    }
+  }
+  button.addEventListener('click', () => load(true));
+  load(false);
+})();

@@ -1,4 +1,5 @@
-/* Resultados del buscador geográfico, sin modificar otras páginas */
-.dq-prefijos-coincidencias{padding-left:20px;margin:14px 0;color:#efe5d3;line-height:1.7}
-.dq-prefijos-coincidencias li{margin:0 0 7px}
-.dq-prefijos-coincidencias b{color:#f5c85f}
+/* Cada coincidencia conserva el mismo formato de etiquetas y valores. */
+.dq-prefijos-coincidencias{list-style:none;padding:0;margin:14px 0;color:#efe5d3}
+.dq-prefijos-coincidencias li{margin:0;padding:12px 0;border-top:1px solid #49613f}
+.dq-prefijos-coincidencias li:first-child{border-top:0;padding-top:0}
+.dq-prefijos-coincidencias .dq-result-fields{margin:0}

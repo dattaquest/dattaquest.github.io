@@ -69,3 +69,12 @@ body.dq-page:before{content:'';position:fixed;inset:0;pointer-events:none;backgr
 
 .dq-result-action{display:inline-block;margin-top:12px;color:#f5c85f!important;text-decoration:underline;font-weight:650;}
 .dq-result-action:focus-visible{outline:2px solid white;outline-offset:3px}
+
+/* Un campo por línea: etiquetas y valores legibles también en pantallas pequeñas. */
+.dq-result-fields{display:block;margin:14px 0 0;padding:0;font-size:15px;line-height:1.65}
+.dq-result-fields .dq-field-row{display:block;margin:0;padding:0;overflow-wrap:anywhere}
+.dq-result-fields .dq-field-row + .dq-field-row{margin-top:4px}
+.dq-result-fields dt{display:inline;font-weight:650;color:#fff}
+.dq-result-fields dd{display:inline;margin:0;color:#efe5d3}
+.dq-quote .dq-result-fields{margin-top:0}
+.dq-quote .dq-result-fields dd{color:#fce2ac;font-weight:700}
