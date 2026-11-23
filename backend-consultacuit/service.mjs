@@ -1,5 +1,6 @@
 /* Conector de sólo consulta. No guarda documentos, claves ni respuestas del padrón. */
 import { consultarCuitConsultaCuit } from '../backend-cloudflare/proveedores/consultacuit-cuil.mjs';
+import { consultarRadicacionArgentina, comprobarRadicacionArgentina } from '../backend-cloudflare/proveedores/argentina-radicacion.mjs';
 
 const ORIGIN = 'https://dattaquest.github.io';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -12,7 +13,7 @@ function json(status, data, cors, extra = {}) {
   } });
 }
 
-async function readInput(request) {
+async function readInput(request, kind = 'cuil') {
   if (!/^application\/json(?:\s*;|$)/i.test(request.headers.get('Content-Type') || '')) throw error('json_requerido', 415);
   if (Number(request.headers.get('Content-Length') || 0) > 512) throw error('demasiados_datos', 413);
   if (!request.body) throw error('json_invalido', 400);
@@ -30,12 +31,18 @@ async function readInput(request) {
   let body;
   try { body = JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(bytes)); }
   catch { throw error('json_invalido', 400); }
-  if (!body || typeof body !== 'object' || Array.isArray(body) || typeof body.dni !== 'string' ||
-      !/^\d{7,8}$/.test(body.dni) || /^0+$/.test(body.dni) ||
+  if (!body || typeof body !== 'object' || Array.isArray(body) ||
       (body.requestId !== undefined && (typeof body.requestId !== 'string' || !UUID.test(body.requestId)))) {
     throw error('dato_invalido', 400);
   }
-  return body.dni;
+  if (kind === 'cuil') {
+    if (typeof body.dni !== 'string' || !/^\d{7,8}$/.test(body.dni) || /^0+$/.test(body.dni)) throw error('dato_invalido', 400);
+    return body.dni;
+  }
+  if (typeof body.patente !== 'string' || !/^(?:[A-Z]{3}\d{3}|[A-Z]{2}\d{3}[A-Z]{2}|\d{3}[A-Z]{3}|[A-Z]\d{3}[A-Z]{3})$/.test(body.patente)) {
+    throw error('dato_invalido', 400);
+  }
+  return body.patente;
 }
 
 // Límite preventivo por instancia: no es autenticación ni un cupo global duradero.
@@ -59,7 +66,8 @@ function makeLimiter(now) {
 }
 
 export function createConsultaCuitService({fetchImpl = (...args) => fetch(...args), now = Date.now,
-  lookup = consultarCuitConsultaCuit} = {}) {
+  lookup = consultarCuitConsultaCuit, radicacionLookup = consultarRadicacionArgentina,
+  radicacionHealth = comprobarRadicacionArgentina} = {}) {
   const reserve = makeLimiter(now);
   return async function handle(request) {
     const path = new URL(request.url).pathname;
@@ -79,21 +87,36 @@ export function createConsultaCuitService({fetchImpl = (...args) => fetch(...arg
         if (!response.ok) throw error('servicio_no_disponible');
         const health = await response.json();
         if (health?.ok !== true) throw error('servicio_no_disponible');
-        return json(200, {version: 10, proveedor: 'ConsultaCUIT', servicios: {cuil: true},
+        return json(200, {version: 11, proveedor: 'ConsultaCUIT', servicios: {cuil: true},
           consultaPersonalVerificada: false,
           fechaPadron: /^\d{4}-\d{2}-\d{2}$/.test(health.padron_snapshot_date || '') ? health.padron_snapshot_date : null}, cors);
       } catch { return json(503, {error: 'servicio_no_disponible', servicios: {cuil: false}}, cors); }
     }
-    if (path !== '/api/cuil') return json(404, {error: 'no_disponible'}, cors);
+    if (path === '/api/radicacion/status' && request.method === 'GET') {
+      try {
+        const health = await radicacionHealth({fetchImpl, signal: request.signal});
+        if (health?.disponible !== true) throw error('fuente_no_disponible');
+        return json(200, {version: 11, proveedor: 'Argentina.gob.ar / DNRPA',
+          servicios: {radicacion: true}, consultaPatenteVerificada: false}, cors);
+      } catch (failure) {
+        const code = ['fuente_restringida', 'formulario_cambiado', 'limite_consultas'].includes(failure?.code)
+          ? failure.code : 'fuente_no_disponible';
+        return json(503, {error: code, servicios: {radicacion: false}, consultaPatenteVerificada: false}, cors);
+      }
+    }
+    if (path !== '/api/cuil' && path !== '/api/radicacion') return json(404, {error: 'no_disponible'}, cors);
     if (origin !== ORIGIN) return json(403, {error: 'origen_no_permitido'}, cors);
     if (request.method === 'OPTIONS') return new Response(null, {status: 204, headers: cors});
     if (request.method !== 'POST') return json(405, {error: 'metodo_no_permitido'}, cors, {Allow: 'POST, OPTIONS'});
     try {
-      const dni = await readInput(request);
+      const kind = path === '/api/cuil' ? 'cuil' : 'radicacion';
+      const value = await readInput(request, kind);
       if (!await reserve(request)) throw error('limite_consultas', 429);
-      const data = await lookup({dni, fetchImpl, signal: request.signal});
+      const data = kind === 'cuil'
+        ? await lookup({dni: value, fetchImpl, signal: request.signal})
+        : await radicacionLookup({patente: value, fetchImpl, signal: request.signal});
       // La adaptación es la única encargada de validar y reducir los datos del proveedor.
-      return json(200, data, cors);
+      return json(200, kind === 'radicacion' ? {...data, consultadoEn: new Date(now()).toISOString()} : data, cors);
     } catch (failure) {
       const code = /^[a-z_]+$/.test(failure?.code || '') ? failure.code : 'servicio_no_disponible';
       const status = [400, 404, 409, 413, 415, 422, 429, 502, 503].includes(failure?.status) ? failure.status : 503;

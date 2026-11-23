@@ -101,7 +101,7 @@ export async function consultarRadicacionChasis({ patente, apiKey, fetchImpl = f
     // Un solo POST: reintentarlo podría consumir créditos. No seguir redirecciones.
     response = await fetchImpl(ENDPOINT, {
       method: 'POST',
-      redirect: 'error',
+      redirect: 'manual',
       headers: {
         Authorization: 'Bearer ' + key,
         'Content-Type': 'application/json',
@@ -113,6 +113,9 @@ export async function consultarRadicacionChasis({ patente, apiKey, fetchImpl = f
   } catch {
     // No propagar mensajes de red que puedan contener claves o datos del proveedor.
     throw fail('servicio_no_disponible', 503);
+  }
+  if (response?.redirected || (response?.status >= 300 && response.status < 400)) {
+    throw fail('respuesta_no_verificada', 502);
   }
   if (response?.ok !== true) throw upstreamError(response);
   if (response.status !== 200) throw fail('respuesta_no_verificada', 502);

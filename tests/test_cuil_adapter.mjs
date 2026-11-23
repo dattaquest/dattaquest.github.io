@@ -73,7 +73,7 @@ test('consulta contrato REST de producción y sólo devuelve los cinco campos pe
   ]);
   for (const { init, body } of calls) {
     assert.equal(init.method, 'POST');
-    assert.equal(init.redirect, 'error');
+    assert.equal(init.redirect, 'manual');
     assert.equal(init.signal, controller.signal);
     assert.equal(init.headers.Authorization, 'Bearer test-only-access-token');
     assert.equal(init.headers['Content-Type'], 'application/json');
@@ -217,6 +217,42 @@ test('errores HTTP de configuración, cuota y disponibilidad no filtran el cuerp
     };
     const { run } = scenario([response]);
     await rejectsCode(run(), code, expectedStatus);
+  }
+});
+
+test('rechaza redirecciones en cada etapa sin leer el cuerpo ni seguir Location', async () => {
+  const successful = [jsonResponse(AUTH), jsonResponse(lookup()), jsonResponse(details())];
+  const urls = [
+    'https://app.afipsdk.com/api/v1/afip/auth',
+    'https://app.afipsdk.com/api/v1/afip/requests',
+    'https://app.afipsdk.com/api/v1/afip/requests',
+  ];
+  for (const status of [300, 301, 302, 303, 304, 307, 308, 399]) {
+    for (let stage = 0; stage < successful.length; stage++) {
+      const redirect = {
+        ok: false, status,
+        headers: new Headers({ Location: 'https://other.example.invalid/redirected' }),
+        json: async () => assert.fail('No leer cuerpos de redirección'),
+      };
+      const { run, calls } = scenario([...successful.slice(0, stage), redirect]);
+      await rejectsCode(run(), 'servicio_no_disponible', 503);
+      assert.deepEqual(calls.map(({ url }) => url), urls.slice(0, stage + 1));
+      assert.ok(calls.every(({ init }) => init.redirect === 'manual'));
+    }
+  }
+});
+
+test('rechaza respuestas que ya siguieron una redirección en cualquier etapa', async () => {
+  const successful = [jsonResponse(AUTH), jsonResponse(lookup()), jsonResponse(details())];
+  for (let stage = 0; stage < successful.length; stage++) {
+    const redirected = {
+      ok: true, status: 200, redirected: true,
+      json: async () => assert.fail('No leer datos de una respuesta redirigida'),
+    };
+    const { run, calls } = scenario([...successful.slice(0, stage), redirected]);
+    await rejectsCode(run(), 'respuesta_no_verificada', 502);
+    assert.equal(calls.length, stage + 1);
+    assert.ok(calls.every(({ init }) => init.redirect === 'manual'));
   }
 });
 

@@ -1,4 +1,4 @@
-# DattaQuest · Otros servicios · v10
+# DattaQuest · Otros servicios · v11
 
 Sitio: https://dattaquest.github.io/otros-servicios/index.html
 
@@ -6,7 +6,15 @@ Repositorio: `dattaquest/dattaquest.github.io`.
 
 **CUIL/CUIT utiliza ahora ConsultaCUIT, sin credenciales ni suscripción de ese proveedor.** Se conecta mediante su endpoint exclusivo en `otros-servicios/cuil/js/config.js`. El conector de servidor resuelve CORS y devuelve sólo una clave verificada. La comprobación de estado y las pruebas sintéticas no sustituyen una consulta final con un DNI propio.
 
-Radicación conserva el estado anterior: su backend comercial sigue pendiente de configuración. Esta entrega no activa Chasis ni cambia ese formulario.
+**Radicación tiene habilitado un conector al formulario público de Argentina.gob.ar.** Se comprobó que el servidor publicado carga y reconoce el formulario oficial. Su activación se controla desde `otros-servicios/radicacion/js/config.js`: un endpoint vacío la deshabilita y evita recurrir automáticamente a Chasis. Está pendiente comprobar una consulta completa de un vehículo autorizado.
+
+## Qué cambia en v11
+
+- Adaptador del formulario público de radicación, sin API key: carga y envía los controles normales del sitio, interpreta la respuesta y devuelve sólo los datos de la oficina registral.
+- Autos y motos, bloqueo de doble envío y estados accesibles. Los resultados admiten fuente y horario; la fecha de acceso se llama «Consultado».
+- Restricciones, desafíos, cambios de formulario y errores no se convierten en resultados ni en una afirmación de patente inexistente.
+- Compatibilidad de los adaptadores opcionales de Afip SDK y Chasis con Cloudflare; continúan sin activar.
+- Investigación y requisitos de otras fuentes de CUIL: [FUENTES_CONSULTAS_LEEME.md](FUENTES_CONSULTAS_LEEME.md). No se incorpora una fuente nueva de CUIL sin credenciales ni se modifica el tipo de clave devuelto por ConsultaCUIT.
 
 ## Qué cambia en v10
 
@@ -33,14 +41,14 @@ Radicación conserva el estado anterior: su backend comercial sigue pendiente de
 | Prefijos | Consulta de códigos y localidades desde los archivos locales. |
 | Dólar | Cotizaciones mediante DolarAPI; conserva caché local y muestra la fecha de los datos. |
 | CUIL / CUIT | ConsultaCUIT, mediante conector propio y sin credenciales del proveedor. Cobertura tributaria parcial; no es una constancia de ANSES. |
-| Radicación | Ruta integrada con la API comercial de Chasis. Requiere cuenta, key con permisos, cupos elegidos y despliegue. |
+| Radicación | Conector habilitado al formulario público de Argentina.gob.ar. Acceso al formulario comprobado; consulta completa con una patente autorizada pendiente. Chasis queda como opción anterior sin activar. |
 | IMEI | Validación del formato y dígito; marca/modelo por TAC en catálogos locales. El bloqueo sigue siendo un conector opcional y no se deduce del TAC. |
 
-Los seis servicios presentan etiquetas y valores por líneas. Las fuentes y los nombres de bases no aparecen dentro de los resultados. La atribución de licencia del catálogo TAC se conserva fuera de la consulta.
+Los seis servicios presentan etiquetas y valores por líneas. Radicación incluye atribución de su fuente cuando está informada. La atribución de licencia del catálogo TAC se conserva fuera de la consulta.
 
 ## Backend anterior de Afip SDK y Chasis (opcional)
 
-**Estos pasos no son necesarios para la nueva consulta de CUIL/CUIT.** El archivo específico `cuil/js/config.js` tiene prioridad y no lo sobrescribe el configurador antiguo.
+**Estos pasos no son necesarios para los conectores públicos nuevos.** Los archivos específicos `cuil/js/config.js` y `radicacion/js/config.js` tienen prioridad, incluso si el endpoint está vacío, y no los sobrescribe el configurador antiguo.
 
 La guía completa está en [backend-cloudflare/LEEME.md](backend-cloudflare/LEEME.md).
 
@@ -60,7 +68,7 @@ El workflow despliega el Worker, guarda sus secretos, configura la URL efectiva,
 - `otros-servicios/comun/`: presentación, navegación y cliente API compartidos.
 - `otros-servicios/<servicio>/`: HTML, estilos, lógica y archivos de datos de cada servicio.
 - `backend-cloudflare/`: rutas, adaptadores de proveedor y controles de consumo.
-- `backend-consultacuit/`: conector gratuito específico de CUIL/CUIT y su documentación.
+- `backend-consultacuit/`: servicio compartido de los conectores públicos de CUIL/CUIT y radicación, con su documentación.
 - `herramientas/verificar_accesos.mjs`: preflight de activación.
 - `herramientas/configurar_api.mjs`: comprueba el Worker y guarda su URL pública.
 - `.github/workflows/activar-consultas.yml`: activación manual con secretos y cupos.
@@ -93,4 +101,4 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Las APIs de las pruebas están simuladas: estos comandos no buscan documentos ni patentes ni acreditan que las cuentas de producción estén habilitadas. `npm test` incluye ConsultaCUIT, su conector, endpoints independientes y las pruebas de activación anteriores. Las capturas se generan en `test-results/` y se guardan como artefacto `dattaquest-v10-capturas` del workflow de verificación.
+Las APIs de las pruebas están simuladas: estos comandos no buscan documentos ni patentes ni acreditan que las cuentas de producción estén habilitadas. `npm test` incluye ConsultaCUIT, su conector, radicación pública, endpoints independientes y las pruebas de activación anteriores. Las capturas se generan en `test-results/` y se guardan como artefacto `dattaquest-v11-capturas` del workflow de verificación.

@@ -57,7 +57,7 @@ test('envía un solo POST canónico y devuelve exclusivamente radicación', asyn
       calls++;
       assert.equal(url, 'https://www.chasis.com.ar/api/v1/consultas');
       assert.equal(init.method, 'POST');
-      assert.equal(init.redirect, 'error');
+      assert.equal(init.redirect, 'manual');
       assert.deepEqual(init.headers, {
         Authorization: 'Bearer clave-simulada',
         'Content-Type': 'application/json',
@@ -234,6 +234,43 @@ test('traduce errores HTTP sin leer detalles privados ni repetir el POST', async
       assert.equal(calls, 1);
     });
   }
+});
+
+test('rechaza todo 3xx sin leer el cuerpo, repetir el POST ni seguir Location', async () => {
+  for (const status of [300, 301, 302, 303, 304, 307, 308, 399]) {
+    const calls = [];
+    await assert.rejects(consultarRadicacionChasis({
+      ...options(),
+      fetchImpl: async (url, init) => {
+        calls.push({ url, init });
+        return {
+          ok: false, status,
+          headers: new Headers({ Location: 'https://other.example.invalid/redirected' }),
+          json: async () => assert.fail('No leer cuerpos de redirección'),
+        };
+      },
+    }), expectedError('respuesta_no_verificada', 502));
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].url, 'https://www.chasis.com.ar/api/v1/consultas');
+    assert.equal(calls[0].init.redirect, 'manual');
+  }
+});
+
+test('rechaza una respuesta 200 que ya siguió una redirección', async () => {
+  let calls = 0;
+  await assert.rejects(consultarRadicacionChasis({
+    ...options(),
+    fetchImpl: async (url, init) => {
+      calls++;
+      assert.equal(url, 'https://www.chasis.com.ar/api/v1/consultas');
+      assert.equal(init.redirect, 'manual');
+      return {
+        ok: true, status: 200, redirected: true,
+        json: async () => assert.fail('No leer datos de una respuesta redirigida'),
+      };
+    },
+  }), expectedError('respuesta_no_verificada', 502));
+  assert.equal(calls, 1);
 });
 
 test('sólo expone Retry-After numérico y acotado', async t => {

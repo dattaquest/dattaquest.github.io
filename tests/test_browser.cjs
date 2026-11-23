@@ -33,7 +33,8 @@ const state = {
   cuil: {status: 200, body: {verificado: true, tipoClave: 'CUIT', dni: '12345678', cuit: '20123456786',
     fuente: 'ConsultaCUIT', fechaPadron: '2026-10-10'}},
   radicacion: {status: 200, body: {verificado: true, patente: 'AB123CD', registro: null, codigoRegistro: null,
-    direccion: 'DIRECCIÓN DE PRUEBA', localidad: null, provincia: null, consultadoEn: '2026-01-01T12:00:00.000Z'}}
+    direccion: 'DIRECCIÓN DE PRUEBA', localidad: null, provincia: null, fuente: 'Argentina.gob.ar / DNRPA',
+    consultadoEn: '2026-01-01T12:00:00.000Z'}}
 };
 async function visibleResult(page, type) {
   await page.waitForFunction(value => document.getElementById('dqResult').dataset.type === value, type);
@@ -71,6 +72,10 @@ async function simpleForm(page) {
       await route.fulfill({contentType: 'text/javascript', body: 'window.DATTA_API_ENDPOINTS={cuil:' + JSON.stringify(state.configured ? base + '/api/cuil' : '') + '};'});
       return;
     }
+    if (url.pathname === '/otros-servicios/radicacion/js/config.js') {
+      await route.fulfill({contentType: 'text/javascript', body: 'window.DATTA_API_ENDPOINTS={radicacion:' + JSON.stringify(state.configured ? base + '/api/radicacion' : '') + '};'});
+      return;
+    }
     if (url.origin === base && url.pathname.startsWith('/api/')) {
       const payload = request.postDataJSON();
       requests.push({route: url.pathname, payload});
@@ -79,7 +84,10 @@ async function simpleForm(page) {
       assert.equal(Object.hasOwn(payload, 'sexo'), false);
       let response = {status: 503, body: {error: 'proveedor_sin_configurar'}};
       if (url.pathname === '/api/cuil') response = state.cuil;
-      if (url.pathname === '/api/radicacion') response = state.radicacion;
+      if (url.pathname === '/api/radicacion') {
+        assert.deepEqual(Object.keys(payload).sort(), ['patente', 'requestId']);
+        response = state.radicacion;
+      }
       if (url.pathname === '/api/prestadores' && state.current) response = {status: 200, body: state.current};
       if (response.wait) await response.wait;
       await route.fulfill({status: response.status, contentType: 'application/json', body: JSON.stringify(response.body)});
@@ -219,36 +227,104 @@ async function simpleForm(page) {
 
   await page.goto(base + '/otros-servicios/radicacion/index.html');
   await simpleForm(page);
+  assert.equal(await page.locator('#dqValue').getAttribute('aria-describedby'), 'dqPatenteHelp dqResult');
+  assert.equal(await page.locator('#dqResult').getAttribute('role'), 'status');
+  assert.equal(await page.locator('#dqResult').getAttribute('aria-live'), 'polite');
+  assert.equal(await page.locator('#dqResult').getAttribute('aria-atomic'), 'true');
   before = requests.length;
-  for (const value of ['AB/123CD', 'AB123CD!', '<AB123CD>']) {
+  for (const value of ['AB/123CD', 'AB123CD!', '<AB123CD>', '12345678', 'A123BC', '123ABCD', 'ABC1234']) {
     await submit(page, value);
     await visibleResult(page, 'error');
     assert.match(await page.locator('#dqResult').textContent(), /Patente no válida/);
+    assert.equal(await page.locator('#dqValue').getAttribute('aria-invalid'), 'true');
   }
   assert.equal(requests.length, before, 'Una patente inválida no se envía a la API');
   await submit(page, 'AB123CD');
   await visibleResult(page, 'success');
   assert.equal((await rows(page)).find(row => row[0] === 'Registro: ')[1], 'Sin información');
   assert.equal((await rows(page)).find(row => row[0] === 'Dirección: ')[1], 'DIRECCIÓN DE PRUEBA');
-  assert.equal((await rows(page)).some(row => /Tipo de vehículo|Código postal|Teléfono del registro/.test(row[0])), false);
-  Object.assign(state.radicacion.body, {tipoVehiculo: 'AUTOMOTOR', codigoPostal: 'C0000', telefono: '0000-0000'});
+  assert.equal((await rows(page)).find(row => row[0] === 'Fuente: ')[1], 'Argentina.gob.ar / DNRPA');
+  assert.equal((await rows(page)).some(row => row[0] === 'Consultado: '), true);
+  assert.equal((await rows(page)).some(row => /Tipo de vehículo|Código postal|Teléfono del registro|Horario/.test(row[0])), false);
+  assert.equal(await page.locator('#dqValue').getAttribute('aria-invalid'), 'false');
+  Object.assign(state.radicacion.body, {tipoVehiculo: 'Automotor', fuente: 'Chasis', titular: 'NO MOSTRAR TITULAR', documento: 'NO MOSTRAR DOCUMENTO',
+    domicilioTitular: 'NO MOSTRAR DOMICILIO', codigoPostal: 'C0000', telefono: '0000-0000', horario: '08:30 a 12:30'});
   await submit(page, 'AB-123-CD');
   await page.waitForFunction(() => document.getElementById('dqResult').textContent.includes('Código postal'));
-  for (const [label, value] of [['Tipo de vehículo: ', 'AUTOMOTOR'], ['Código postal: ', 'C0000'], ['Teléfono del registro: ', '0000-0000']]) {
+  assert.deepEqual((await rows(page)).map(row => row[0]), ['Patente: ', 'Tipo de vehículo: ', 'Registro: ', 'Código de registro: ',
+    'Dirección: ', 'Localidad: ', 'Provincia: ', 'Código postal: ', 'Teléfono del registro: ', 'Horario del registro: ', 'Fuente: ', 'Consultado: ']);
+  for (const [label, value] of [['Tipo de vehículo: ', 'Automotor'], ['Código postal: ', 'C0000'], ['Teléfono del registro: ', '0000-0000'], ['Horario del registro: ', '08:30 a 12:30']]) {
     assert.equal((await rows(page)).find(row => row[0] === label)[1], value);
   }
+  assert.doesNotMatch(await page.locator('#dqResult').textContent(), /Actualizado|NO MOSTRAR/);
+  const validRadicacion = {...state.radicacion.body, fuente: 'Argentina.gob.ar / DNRPA', tipoVehiculo: undefined};
   state.radicacion.body.direccion = '<img src=x onerror="window.fixtureInjected=true">';
   await submit(page, 'AB123CD');
   await page.waitForFunction(() => document.getElementById('dqResult').textContent.includes('<img'));
   assert.equal(await page.locator('#dqResult img').count(), 0);
   assert.equal(await page.evaluate(() => window.fixtureInjected), undefined);
-  assert.doesNotMatch(await page.locator('#dqResult').textContent(), /Fuente:/);
+  for (const invalid of [null, [], {...validRadicacion, verificado: false}, {...validRadicacion, patente: 'AC123CD'},
+    {verificado: true, patente: 'AB123CD', fuente: 'Argentina.gob.ar / DNRPA'}]) {
+    state.radicacion.body = invalid;
+    await submit(page, 'AB123CD');
+    await visibleResult(page, 'error');
+    assert.match(await page.locator('#dqResult').textContent(), /No se pudo verificar la radicación/);
+    assert.equal((await rows(page)).length, 0);
+  }
+  for (const [value, patente] of [['abc 123', 'ABC123'], ['ab-123-cd', 'AB123CD'], ['123.abc', '123ABC'], ['a123 bcd', 'A123BCD']]) {
+    state.radicacion.body = {...validRadicacion, patente};
+    await submit(page, value);
+    await visibleResult(page, 'success');
+    assert.equal((await rows(page))[0][1], patente);
+    assert.equal(requests.at(-1).payload.patente, patente);
+  }
+  let releaseRadicacion;
+  state.radicacion = {status: 200, body: {...validRadicacion, patente: 'A123BCD'},
+    wait: new Promise(resolve => { releaseRadicacion = resolve; })};
+  before = requests.length;
+  const radicacionRequest = page.waitForRequest(request => new URL(request.url()).pathname === '/api/radicacion');
+  await submit(page, 'A123BCD');
+  await radicacionRequest;
+  await page.waitForFunction(() => document.getElementById('dqForm').getAttribute('aria-busy') === 'true');
+  assert.equal(await page.locator('#dqForm button[type=submit]').isDisabled(), true);
+  assert.equal(await page.locator('#dqForm button[type=submit]').textContent(), 'Consultando…');
+  await page.locator('#dqForm').evaluate(form => form.dispatchEvent(new Event('submit', {bubbles: true, cancelable: true})));
+  assert.equal(requests.length, before + 1, 'El segundo envío no duplica la consulta de patente');
+  releaseRadicacion();
+  await visibleResult(page, 'success');
+  assert.equal(await page.locator('#dqForm button[type=submit]').isDisabled(), false);
+  assert.equal(await page.locator('#dqForm button[type=submit]').textContent(), 'Consultar patente');
+  assert.equal(await page.locator('#dqForm').getAttribute('aria-busy'), 'false');
+  for (const [error, status, expected] of [
+    ['formulario_cambiado', 503, /cambió su formulario/], ['fuente_restringida', 503, /restringió el acceso/],
+    ['fuente_no_disponible', 503, /fuente de consulta no está disponible/], ['servicio_no_disponible', 503, /No se pudo completar/],
+    ['limite_consultas', 429, /Esperá unos minutos/], ['limite_diario', 429, /mañana/]
+  ]) {
+    state.radicacion = {status, body: {error}};
+    await submit(page, 'AB123CD');
+    await visibleResult(page, 'error');
+    assert.match(await page.locator('#dqResult').textContent(), expected);
+    assert.doesNotMatch(await page.locator('#dqResult').textContent(), /Sin datos de radicación|no registrada|no encontrada|inexistente/i);
+    assert.equal(await page.locator('#dqForm button[type=submit]').isDisabled(), false);
+    assert.equal(await page.locator('#dqForm').getAttribute('aria-busy'), 'false');
+  }
+  state.radicacion = {status: 404, body: {error: 'radicacion_no_encontrada'}};
+  await submit(page, 'AB123CD');
+  await page.waitForFunction(() => document.getElementById('dqResult').textContent.includes('Sin datos de radicación'));
+  assert.match(await page.locator('#dqResult').textContent(), /fuente consultada no devolvió datos/);
   state.radicacion = {status: 503, body: {error: 'proveedor_sin_configurar'}};
   await submit(page, 'AB123CD');
   await page.waitForFunction(() => document.getElementById('dqResult').textContent.includes('Todavía no está habilitada'));
   assert.equal(await page.locator('#dqResult a').count(), 0);
+  state.configured = false;
+  await page.reload();
+  before = requests.length;
+  await submit(page, 'AB123CD');
+  await page.waitForFunction(() => document.getElementById('dqResult').textContent.includes('Todavía no está habilitada'));
+  assert.equal(requests.length, before, 'El config vacío de radicación no envía una consulta');
   await simpleForm(page);
-  console.log('OK navegador: radicación sin CAPTCHA, campos opcionales y errores sin enlaces');
+  state.configured = true;
+  console.log('OK navegador: radicación de autos y motos, campos permitidos, estados accesibles y errores de fuente');
 
   await page.goto(base + '/otros-servicios/imei/index.html');
   await submit(page, '490154203237518');

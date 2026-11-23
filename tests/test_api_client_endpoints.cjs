@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const script = fs.readFileSync(new URL('../otros-servicios/comun/api-client.js', 'file://' + __filename), 'utf8');
 
-test('la página publicada incluye una configuración existente y activa antes del cliente', () => {
+test('la página de CUIL incluye una configuración existente y activa antes del cliente', () => {
   const html = fs.readFileSync(new URL('../otros-servicios/cuil/index.html', 'file://' + __filename), 'utf8');
   const config = fs.readFileSync(new URL('../otros-servicios/cuil/js/config.js', 'file://' + __filename), 'utf8');
   assert(html.indexOf('./js/config.js') < html.indexOf('../comun/api-client.js'));
@@ -18,6 +18,36 @@ test('la página publicada incluye una configuración existente y activa antes d
   const url = new URL(context.DATTA_API_ENDPOINTS.cuil);
   assert.equal(url.protocol, 'https:');
   assert.equal(url.pathname, '/api/cuil');
+});
+
+test('radicación carga su configuración antes del cliente y conserva el endpoint de CUIL', () => {
+  const html = fs.readFileSync(new URL('../otros-servicios/radicacion/index.html', 'file://' + __filename), 'utf8');
+  const config = fs.readFileSync(new URL('../otros-servicios/radicacion/js/config.js', 'file://' + __filename), 'utf8');
+  const cuilConfig = fs.readFileSync(new URL('../otros-servicios/cuil/js/config.js', 'file://' + __filename), 'utf8');
+  assert(html.indexOf('../comun/api-config.js') >= 0);
+  assert(html.indexOf('../comun/api-config.js') < html.indexOf('./js/config.js'));
+  assert(html.indexOf('./js/config.js') < html.indexOf('../comun/api-client.js'));
+  const context = vm.createContext({Object, URL, location: {hostname: 'dattaquest.github.io'},
+    DATTA_API_BASE: 'https://antiguo.example/api'});
+  context.window = context;
+  vm.runInContext(cuilConfig, context);
+  const cuilEndpoint = context.DATTA_API_ENDPOINTS.cuil;
+  vm.runInContext(config, context);
+  vm.runInContext(script, context);
+  assert.equal(context.DATTA_API_ENDPOINTS.cuil, cuilEndpoint);
+  assert.equal(context.DattaApi.enabled('cuil'), true);
+  assert.equal(Object.hasOwn(context.DATTA_API_ENDPOINTS, 'radicacion'), true);
+  const endpoint = context.DATTA_API_ENDPOINTS.radicacion;
+  assert.equal(typeof endpoint, 'string');
+  if (endpoint) {
+    const url = new URL(endpoint);
+    assert.equal(url.protocol, 'https:');
+    assert.equal(url.origin, new URL(cuilEndpoint).origin);
+    assert.equal(url.pathname, '/api/radicacion');
+    assert.equal(context.DattaApi.enabled('radicacion'), true);
+  } else {
+    assert.equal(context.DattaApi.enabled('radicacion'), false, 'El override vacío impide usar el proveedor anterior');
+  }
 });
 
 function client(settings = {}) {
@@ -47,12 +77,27 @@ test('el endpoint de CUIL no altera la URL configurada de otro servicio', async 
   assert.equal(api.enabled('prestadores'), false);
 });
 
-test('override vacío desactiva y direcciones inseguras no reciben el DNI', async () => {
-  for (const endpoint of ['', 'http://conector.example/api/cuil', 'https://user:pass@conector.example/api/cuil',
-    'https://conector.example/api/cuil?key=x', 'javascript:alert(1)', 'https://conector.example/api/cuil#fragment']) {
-    const {api, calls} = client({DATTA_API_BASE: 'https://antiguo.example/api', DATTA_API_ENDPOINTS: {cuil: endpoint}});
-    assert.equal(api.enabled('cuil'), false);
-    await assert.rejects(api.request('cuil', {dni: '12345678'}), failure => failure.code === 'proveedor_sin_configurar');
-    assert.equal(calls.length, 0);
+test('radicación y CUIL usan sus endpoints propios sin enviar datos a otro servicio', async () => {
+  const {api, calls} = client({DATTA_API_BASE: 'https://antiguo.example/api', DATTA_API_ENDPOINTS: {
+    cuil: 'https://conector.example/api/cuil', radicacion: 'https://conector.example/api/radicacion'}});
+  await api.request('radicacion', {patente: 'A123BCD'});
+  assert.equal(calls[0].url, 'https://conector.example/api/radicacion');
+  assert.deepEqual(JSON.parse(calls[0].options.body), {patente: 'A123BCD', requestId: '11111111-1111-4111-8111-111111111111'});
+  assert.equal(calls[0].options.referrerPolicy, 'no-referrer');
+  assert.equal(calls[0].options.credentials, 'omit');
+  await api.request('cuil', {dni: '12345678'});
+  assert.equal(calls[1].url, 'https://conector.example/api/cuil');
+  assert.equal(Object.hasOwn(JSON.parse(calls[1].options.body), 'patente'), false);
+});
+
+test('overrides vacíos o inseguros no reciben DNI ni patente ni recurren al proveedor anterior', async () => {
+  for (const [route, payload] of [['cuil', {dni: '12345678'}], ['radicacion', {patente: 'AB123CD'}]]) {
+    for (const endpoint of ['', 'http://conector.example/api/' + route, 'https://user:pass@conector.example/api/' + route,
+      'https://conector.example/api/' + route + '?key=x', 'javascript:alert(1)', 'https://conector.example/api/' + route + '#fragment']) {
+      const {api, calls} = client({DATTA_API_BASE: 'https://antiguo.example/api', DATTA_API_ENDPOINTS: {[route]: endpoint}});
+      assert.equal(api.enabled(route), false);
+      await assert.rejects(api.request(route, payload), failure => failure.code === 'proveedor_sin_configurar');
+      assert.equal(calls.length, 0);
+    }
   }
 });
