@@ -1,3 +1,5 @@
+> **Actualización v8:** la integración de CUIL usa ARCA A13 mediante Afip SDK y la de radicación usa la API comercial de Chasis. Ambas rutas están conectadas al Worker. Para los contratos, secretos y pasos de activación vigentes, consultar [backend-cloudflare/LEEME.md](backend-cloudflare/LEEME.md). Los contratos genéricos de versiones anteriores que aparecen más abajo son históricos; no se usan `UPSTREAM_CUIL_URL` ni `UPSTREAM_RADICACION_URL`. La activación sigue pendiente de los accesos y la URL de producción del titular del sitio.
+
 # DattaQuest · Primera implementación de Otros servicios
 
 ## Publicación en GitHub Pages

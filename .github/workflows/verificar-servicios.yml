@@ -1,0 +1,63 @@
+name: Verificar servicios DattaQuest
+
+on:
+  pull_request:
+    paths:
+      - 'otros-servicios/**'
+      - 'backend-cloudflare/**'
+      - 'herramientas/**'
+      - 'tests/**'
+      - 'package*.json'
+      - '.github/workflows/verificar-servicios.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'otros-servicios/**'
+      - 'backend-cloudflare/**'
+      - 'tests/**'
+      - 'package*.json'
+      - '.github/workflows/verificar-servicios.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verificar-servicios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Contratos de API, protecciones y formularios (sin consultas externas)
+        run: npm test
+      - name: Importadores existentes
+        run: python -m unittest discover -s tests -p 'test_*.py'
+      - name: Instalar dependencias del Worker
+        run: npm ci --ignore-scripts --no-audit --no-fund --prefix backend-cloudflare
+      - name: Compilar Worker sin desplegar
+        run: npm run check --prefix backend-cloudflare
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+      - name: Preparar navegador de prueba
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Verificar formularios y diseño móvil en Chromium
+        run: npm run test:browser
+      - name: Capturas de escritorio y móvil
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dattaquest-v8-capturas
+          path: test-results/*.png
+          if-no-files-found: ignore
+          retention-days: 14

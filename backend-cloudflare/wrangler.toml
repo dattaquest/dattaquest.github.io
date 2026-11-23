@@ -5,5 +5,26 @@ workers_dev = true
 
 [vars]
 ALLOWED_ORIGIN = "https://dattaquest.github.io"
-# Jamás incluyas aquí tokens o claves privadas.
-# Las direcciones de proveedores y tokens van en variables/secrets de Cloudflare.
+CUIL_PROVIDER = "afipsdk"
+RADICACION_PROVIDER = "chasis"
+# Elegir un cupo antes de activar: 0 mantiene la ruta cerrada.
+CUIL_DAILY_LIMIT = "0"
+RADICACION_DAILY_LIMIT = "0"
+OTHER_DAILY_LIMIT = "0"
+
+[[ratelimits]]
+name = "REQUEST_LIMITER"
+namespace_id = "1008"
+simple = { limit = 10, period = 60 }
+
+[[durable_objects.bindings]]
+name = "CONSULTA_QUOTA"
+class_name = "ConsultaQuota"
+
+[[migrations]]
+tag = "v8-consultas"
+new_sqlite_classes = ["ConsultaQuota"]
+
+[observability]
+enabled = false
+# Credenciales sólo con wrangler secret put; ver LEEME.md.

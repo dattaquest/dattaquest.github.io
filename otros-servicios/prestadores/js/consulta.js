@@ -1,94 +1,84 @@
-/* DattaQuest v3 — datos de origen de ENACOM (locales), operador actual por API habilitada. */
-(function(){
-'use strict';
-const f=document.getElementById('dqForm');
-const official='https://www.enacom.gob.ar/buscador-de-prestadores_p1510';
-let datasetPromise;
+/* Asignación original del bloque; prestador actual sólo cuando está confirmado. */
+(function () {
+  'use strict';
+  const form = document.getElementById('dqForm');
+  let datasetPromise;
 
-function normalizedCompany(value) {
- return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-   .toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim().replace(/\s+/g,' ');
-}
-function knownBrand(company) {
- const name=normalizedCompany(company);
- if(/^TELEFONICA MOVILES ARGENTINA(?: S A| SOCIEDAD ANONIMA)?$/.test(name))return 'Movistar';
- if(/^COMPANIA DE RADIOCOMUNICACIONES MOVILES(?: S A| SOCIEDAD ANONIMA)?$/.test(name))return 'Personal';
- if(/^AMX ARGENTINA(?: S A| SOCIEDAD ANONIMA)?$/.test(name))return 'Claro';
- return '';
-}
-function showAssociatedBrand(company) {
- const brand=knownBrand(company);
- if(!brand)return;
- const parent=document.getElementById('dqResult');
- const heading=parent && parent.querySelector('strong');
- if(!heading)return;
- const row=document.createElement('p');
- row.className='dq-prestador-marca';
- const label=document.createElement('b');
- label.textContent='Marca comercial asociada: ';
- row.append(label, document.createTextNode(brand+'.'));
- heading.insertAdjacentElement('afterend',row);
-}
-
-function loadAssignments(){
- if (!datasetPromise) datasetPromise=fetch('./data/asignaciones.json',{cache:'default'}).then(r=>{
-  if(!r.ok)throw Error('SIN_BASE');return r.json();
- }).then(x=>{
-  if(!x||!x.meta||!Array.isArray(x.bloques)||!x.bloques.length)throw Error('BASE_INVALIDA');return x;
- }).catch(err=>{datasetPromise=null;throw err;});
- return datasetPromise;
-}
-function originalMatch(number, database){
- let best=null;
- for(const item of database.bloques){
-  const key=item[0];
-  if(typeof key==='string' && number.startsWith(key) && (!best||key.length>best[0].length))best=item;
- }
- return best;
-}
-async function queryCurrent(numero){
- if(!DattaApi.enabled())return false;
- try{
-  const x=await DattaApi.request('prestadores',{numero});
-  if(x.verificado===true && typeof x.prestador_actual==='string' && x.prestador_actual.trim()){
-   DattaUtil.result('dqCurrent','Prestador ACTUAL confirmado',
-    x.prestador_actual+' · Fuente: '+(x.fuente||'Integración autorizada')+'.'+
-    (x.portado===true?' El número fue portado.':x.portado===false?' No figura portado en la fuente.':''),'success');
-   return true;
+  function normalizedCompany(value) {
+    return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
   }
- }catch(ignore){}
- return false;
-}
-f.addEventListener('submit',async event=>{
- event.preventDefault();
- const numero=DattaUtil.normalizePhone(document.getElementById('dqValue').value);
- if(!/^\d{10}$/.test(numero)){
-  DattaUtil.result('dqResult','Número inválido','Ingresá 10 dígitos nacionales, sin el 0 ni el 15.','error');return;
- }
- const btn=f.querySelector('button[type=submit]');btn.disabled=true;
- DattaUtil.result('dqResult','Consultando numeración','Buscando la asignación original en la base local de ENACOM...','info');
- document.getElementById('dqCurrent').textContent='';
- try{
-  let data=null;
-  try{data=await loadAssignments();}catch(ignore){}
-  const match=data?originalMatch(numero,data):null;
-  if(match){
-   const m=data.meta;
-   DattaUtil.result('dqResult','Prestador ORIGINAL: '+match[1],
-    'Bloque: '+match[0]+' · Servicio registrado: '+(match[2]||'No especificado')+
-    ' · Área cabecera: '+match[3]+' · Resolución: '+(match[4]||'Sin dato')+
-    ' · Fuente: '+m.origen+' · Base '+m.archivo+'. Esto NO determina el operador actual, la portabilidad ni si la línea está activa.','success');
-   showAssociatedBrand(match[1]);
-  }else if(data){
-   DattaUtil.result('dqResult','Sin asignación para ese bloque','No se encontró una coincidencia en la publicación local de ENACOM ('+data.meta.archivo+'). No significa que la línea no exista ni que esté inactiva.','info');
-  }else{
-   DattaUtil.result('dqResult','Base de asignaciones pendiente','Para consultar el prestador original desde DattaQuest, importá el archivo oficial ENACOM con herramientas/actualizar_enacom.py.','info');
+  function knownBrand(company) {
+    const name = normalizedCompany(company);
+    if (/^TELEFONICA MOVILES ARGENTINA(?: S A| SOCIEDAD ANONIMA)?$/.test(name)) return 'Movistar';
+    if (/^COMPANIA DE RADIOCOMUNICACIONES MOVILES(?: S A| SOCIEDAD ANONIMA)?$/.test(name)) return 'Personal';
+    if (/^AMX ARGENTINA(?: S A| SOCIEDAD ANONIMA)?$/.test(name)) return 'Claro';
+    return '';
   }
-  if(!await queryCurrent(numero)){
-   DattaUtil.result('dqCurrent','Prestador ACTUAL: no verificado',
-    'La portabilidad solo se puede verificar en la consulta oficial o con una API habilitada. No deducimos la compañía actual a partir del bloque.','info');
-   DattaUtil.action('dqCurrent','Consultar prestador actual en ENACOM',official);
+  function loadAssignments() {
+    if (!datasetPromise) datasetPromise = fetch('./data/asignaciones.json', {cache: 'default'})
+      .then(response => {
+        if (!response.ok) throw Error('SIN_DATOS');
+        return response.json();
+      }).then(data => {
+        if (!data || !Array.isArray(data.bloques) || !data.bloques.length) throw Error('DATOS_INVALIDOS');
+        return data;
+      }).catch(error => { datasetPromise = null; throw error; });
+    return datasetPromise;
   }
- }finally{btn.disabled=false;}
-});
+  function originalMatch(number, data) {
+    let best = null;
+    for (const item of data.bloques) {
+      const key = item[0];
+      if (typeof key === 'string' && number.startsWith(key) && (!best || key.length > best[0].length)) best = item;
+    }
+    return best;
+  }
+  async function queryCurrent(numero) {
+    if (!DattaApi.enabled('prestadores')) return;
+    try {
+      const result = await DattaApi.request('prestadores', {numero});
+      if (result.verificado === true && typeof result.prestador_actual === 'string' && result.prestador_actual.trim()) {
+        const rows = [];
+        if (typeof result.portado === 'boolean') rows.push(['Número portado', result.portado ? 'Sí' : 'No']);
+        DattaUtil.fields('dqCurrent', 'Prestador ACTUAL: ' + result.prestador_actual, rows, 'success');
+      }
+    } catch (ignore) { /* La consulta original sigue disponible. */ }
+  }
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const current = document.getElementById('dqCurrent');
+    current.textContent = '';
+    current.classList.remove('is-visible');
+    const numero = DattaUtil.normalizePhone(document.getElementById('dqValue').value);
+    if (!/^\d{10}$/.test(numero)) {
+      DattaUtil.result('dqResult', 'Número inválido', 'Ingresá 10 dígitos nacionales, sin el 0 ni el 15.', 'error');
+      return;
+    }
+    const button = form.querySelector('button[type=submit]');
+    button.disabled = true;
+    DattaUtil.result('dqResult', 'Consultando numeración', 'Buscando el prestador original...', 'info');
+    try {
+      let data = null;
+      try { data = await loadAssignments(); } catch (ignore) {}
+      const match = data ? originalMatch(numero, data) : null;
+      if (match) {
+        const rows = [];
+        const brand = knownBrand(match[1]);
+        if (brand) rows.push(['Marca comercial asociada', brand + '.']);
+        rows.push(
+          ['Bloque', match[0]],
+          ['Servicio registrado', match[2] || 'Sin información'],
+          ['Área cabecera', match[3] || 'Sin información'],
+          ['Resolución', match[4] || 'Sin información']
+        );
+        DattaUtil.fields('dqResult', 'Prestador ORIGINAL: ' + match[1], rows, 'success');
+      } else if (data) {
+        DattaUtil.result('dqResult', 'Sin asignación para ese bloque', 'No se encontró un prestador original para el número ingresado.', 'info');
+      } else {
+        DattaUtil.result('dqResult', 'Consulta no disponible', 'No se pudieron cargar las asignaciones. Intentá nuevamente.', 'error');
+      }
+      await queryCurrent(numero);
+    } finally { button.disabled = false; }
+  });
 })();

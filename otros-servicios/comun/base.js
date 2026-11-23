@@ -1,6 +1,16 @@
-/* Formularios locales: no transmiten DNI, teléfono, patente ni IMEI. */
+/* Utilidades de presentación y validación de los formularios. */
 (function(){
 'use strict';
+function fieldList(rows) {
+ var list=document.createElement('dl');list.className='dq-result-fields';
+ rows.forEach(function(row){
+   var line=document.createElement('div');line.className='dq-field-row';
+   var label=document.createElement('dt');label.textContent=String(row[0])+': ';
+   var value=document.createElement('dd');value.textContent=row[1]==null||row[1]===''?'Sin información':String(row[1]);
+   line.append(label,value);list.appendChild(line);
+ });
+ return list;
+}
 window.DattaUtil = {
  onlyDigits: function(x){return String(x||'').replace(/\D/g,'');},
  normalizePhone: function(s) {var x=this.onlyDigits(s);if(x.startsWith('00549'))x=x.slice(5);else if(x.startsWith('0054'))x=x.slice(4);else if(x.startsWith('549')&&x.length>=12)x=x.slice(3);else if(x.startsWith('54')&&x.length>=12)x=x.slice(2);if(x.startsWith('0')&&x.length>10)x=x.slice(1);if(x.length===12){for(var len=2;len<=4;len++){if(x.slice(len,len+2)==='15'){x=x.slice(0,len)+x.slice(len+2);break;}}}return x;},
@@ -12,8 +22,15 @@ window.DattaUtil = {
    var e=document.getElementById(id);if(!e)return;
    e.textContent='';e.dataset.type=type||'info';
    var s=document.createElement('strong');s.textContent=title;
-   var p=document.createElement('div');p.textContent=description;
-   e.append(s,p);e.classList.add('is-visible');e.setAttribute('role','status');
+   e.appendChild(s);
+   if(description){var p=document.createElement('div');p.textContent=description;e.appendChild(p);}
+   e.classList.add('is-visible');e.setAttribute('role','status');
+ },
+ fieldList: fieldList,
+ fields: function(id,title,rows,type){
+   this.result(id,title,'',type);
+   var e=document.getElementById(id);if(e)e.appendChild(fieldList(rows));
  }
+
 };
 })();
