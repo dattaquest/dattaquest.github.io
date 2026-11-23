@@ -1,5 +1,7 @@
 # DattaQuest v9 · Consultas dentro de la página
 
+> Desde v10, el formulario CUIL/CUIT usa un conector gratuito independiente de ConsultaCUIT. Esta guía corresponde al backend anterior y no es necesaria para activar la nueva consulta. Ver [el conector actual](../backend-consultacuit/LEEME.md).
+
 **Estado de esta entrega: las consultas de producción no están activadas ni se probaron con documentos o patentes.** El código de integración está preparado; faltan las cuentas autorizadas, sus credenciales y el despliegue. Fusionar el PR, por sí solo, no habilita el acceso a los datos.
 
 Los formularios piden solamente **DNI + Consultar CUIL** o **patente + Consultar patente**. El resultado se presenta dentro de DattaQuest, sin selección de sexo, CAPTCHA, código verificador ni enlaces de salida a ANSES/DNRPA. Si el servicio no está habilitado o falla, se informa esa situación sin fabricar un resultado.
