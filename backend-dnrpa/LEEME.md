@@ -5,7 +5,7 @@ Esta rama contiene la interfaz nativa solicitada y el conector separado. No usa 
 ## Estado y activación
 
 - `otros-servicios/radicacion/nativa.html` conserva el diseño DattaQuest, con patente, código y actualización de la imagen.
-- `backend-dnrpa/provider.mjs` reproduce exclusivamente el flujo público observado en el formulario oficial: GET para obtener imagen PNG y cookie; POST de los dos campos de formulario con el código escrito manualmente por el usuario, en esa misma sesión. Si la fuente restringe el acceso, el conector se detiene. No interpreta, soluciona ni evita el CAPTCHA.
+- `backend-dnrpa/provider.mjs` reproduce exclusivamente el flujo público observado en el formulario oficial: GET para obtener la imagen PNG y recoger las cookies aplicables, si las hay; POST de los dos campos de formulario con el código escrito manualmente por el usuario, en esa misma sesión. Si la fuente restringe el acceso, el conector se detiene. No interpreta, soluciona ni evita el CAPTCHA.
 - El Worker conserva las cookies exclusivamente en almacenamiento efímero por sesión, con TTL de 5 minutos y consumo de una sola vez. Limita solicitudes por visitante. No conserva patentes ni respuestas. No publica HTML de terceros.
 - Las pruebas de resultado se basan en el formato de la captura suministrada, con valores sintéticos. Se debe comprobar una consulta completa autorizada antes de sustituir la página publicada. La inspección de un formulario no prueba una consulta.
 
@@ -15,4 +15,4 @@ Este proyecto no tiene permiso para modificar el conector Sites desde la sesión
 
 ## Resultado de la comprobación externa
 
-El GET oficial devolvió HTTP 200 y la imagen PNG esperada; no entregó ninguna cabecera Set-Cookie. La comprobación queda bloqueada porque no se verificó un mecanismo de sesión por visitante que permita asociar el desafío a su respuesta. No se intenta omitir el código, generar sesiones ficticias, manipular cookies de terceros ni enviar una consulta sin una sesión confirmada. El workflow registra únicamente metadatos, no valores de cookies ni imágenes. Tampoco existe configuración de despliegue Cloudflare en los secretos del repositorio que estén disponibles para esta prueba. El formulario nuevo permanece sin publicar.
+La captura del POST exitoso en Brave y su vista previa muestran que DNRPA puede devolver el registro con los campos `dominio` y `verificador` sin cabecera `Cookie`. En ese caso el conector omite la cabecera. El Worker sigue exigiendo una sesión de DattaQuest de un solo uso por visitante. Queda por verificar una consulta nueva desde el backend desplegado antes de activar la interfaz pública.
