@@ -1,0 +1,22 @@
+.dq-rad-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,215px);gap:22px;align-items:start}
+.dq-captcha-line{display:flex;gap:8px;align-items:center;margin:0 0 9px}
+.dq-captcha-display{flex:1;display:grid;place-items:center;min-height:40px;border:1px solid #645a49;background:#141515;border-radius:6px;padding:4px;color:var(--dq-muted);font-size:12px;text-align:center}
+.dq-captcha-display img{max-width:100%;height:auto;max-height:42px}
+.dq-captcha-display img[hidden],.dq-captcha-display span[hidden]{display:none}
+.dq-refresh-captcha{min-height:40px;padding:5px 10px;font-size:22px}
+.dq-verification .dq-input{font-size:16px}
+.dq-native-panel .dq-result[data-type="success"]{padding:20px}
+.dq-native-panel .dq-result-fields .dq-field-row{border-bottom:1px solid #394b32;padding:6px 0;display:grid;grid-template-columns:minmax(100px,36%) minmax(0,1fr);gap:8px}
+.dq-native-panel .dq-result-fields .dq-field-row:last-child{border:0}
+@media(max-width:600px){.dq-rad-fields{grid-template-columns:1fr;gap:0}.dq-captcha-line{max-width:245px}.dq-native-panel .dq-result-fields .dq-field-row{display:block}}
+
+#dqValue { text-transform: uppercase; }
+#dqVerifier { font-variant-numeric: tabular-nums; letter-spacing: .07em; }
+#dqVerifier::placeholder { letter-spacing: normal; }
+.dq-native-panel .dq-result > strong { display: block; font-size: 1.15rem; }
+.dq-native-panel .dq-result-fields dt { color: #c3d1bd; }
+.dq-native-panel .dq-result-fields dd { color: #f5f6f3; }
+@media(max-width:600px) {
+  .dq-native-panel .dq-result-fields dt,
+  .dq-native-panel .dq-result-fields dd { display: block; }
+}

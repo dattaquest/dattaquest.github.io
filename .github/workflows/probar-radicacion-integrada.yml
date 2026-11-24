@@ -3,7 +3,7 @@ on:
   pull_request:
     paths:
       - 'otros-servicios/radicacion/verificar.html'
-      - 'otros-servicios/radicacion/css/verificar.css'
+      - 'otros-servicios/radicacion/js/dnrpa-config.js'
       - 'tests/probar_radicacion_integrada.mjs'
       - '.github/workflows/probar-radicacion-integrada.yml'
 permissions:
@@ -17,6 +17,4 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - run: npm ci --ignore-scripts --no-audit --no-fund
-      - run: npx playwright install --with-deps chromium
       - run: node tests/probar_radicacion_integrada.mjs
