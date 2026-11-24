@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="../comun/nav.css">
 <link rel="stylesheet" href="../comun/base.css">
 <link rel="stylesheet" href="./css/estilo.css">
+<link rel="stylesheet" href="./css/dnrpa.css">
 </head>
 <body class="dq-page">
 <script>var sonido=new Audio('../../click.mp3');</script>
@@ -92,8 +93,15 @@
 <main class="dq-main" id="contenido">
  <nav class="dq-trail" aria-label="Ruta de navegación"><a href="../../index.html">Inicio</a><span>›</span><a href="../index.html">Otros servicios</a><span>›</span><span>Radicación de patente</span></nav>
  <header class="dq-hero"><span class="dq-eyebrow">Servicio gratuito · Argentina</span><h1>Radicación de patente</h1><p>Consultá dónde se encuentra radicado un vehículo argentino.</p></header>
- <div class="dq-grid"><section class="dq-panel" aria-labelledby="tituloFormulario"><h2 id="tituloFormulario">Buscar radicación de patente</h2><form id="dqForm" aria-busy="false" novalidate><label for="dqValue" class="dq-field">Dominio / patente del vehículo</label><input class="dq-input" id="dqValue" type="text" autocapitalize="characters" autocomplete="off" placeholder="Ej.: ABC123 o A123BCD" maxlength="11" aria-describedby="dqPatenteHelp dqResult" required><p class="dq-help" id="dqPatenteHelp">Admite patentes de autos y motos: ABC123, AB123CD, 123ABC y A123BCD.</p><div class="dq-actions"><button class="dq-btn" type="submit">Consultar patente</button></div></form><div id="dqResult" class="dq-result" role="status" aria-live="polite" aria-atomic="true"></div></section>
- <aside class="dq-panel"><h3>Información del servicio</h3><ul class="dq-list"><li>Ingresá la patente para consultar los datos del registro seccional.</li><li>El resultado se muestra en esta página. La fecha indica cuándo se consultaron los datos.</li><li>Este formulario no consulta propietarios.</li><li><a href="./verificar.html">Probar la consulta oficial con código verificador (experimental)</a></li></ul></aside></div>
+ <div class="dq-grid"><section class="dq-panel dq-native-panel" aria-labelledby="tituloFormulario"><h2 id="tituloFormulario">Buscar radicación de patente</h2>
+ <form id="dqForm" aria-busy="false" novalidate>
+ <div class="dq-rad-fields">
+  <div><label for="dqValue" class="dq-field">Dominio / patente del vehículo</label><input class="dq-input" id="dqValue" type="text" autocapitalize="characters" autocomplete="off" placeholder="Ej.: ABC123 o A123BCD" maxlength="11" aria-describedby="dqPatenteHelp" required><p class="dq-help" id="dqPatenteHelp">Patentes de autos y motos: ABC123, AB123CD, 123ABC y A123BCD.</p></div>
+  <div class="dq-verification"><label for="dqVerifier" class="dq-field">Código verificador</label><div class="dq-captcha-line"><div class="dq-captcha-display"><img id="dqCaptcha" alt="Código de verificación oficial de DNRPA" hidden><span id="dqCaptchaStatus" role="status">Cargando…</span></div><button id="dqRefreshCaptcha" class="dq-btn dq-btn-secondary dq-refresh-captcha" type="button" title="Solicitar otro código" aria-label="Actualizar código verificador">↻</button></div><input id="dqVerifier" class="dq-input" type="text" inputmode="numeric" autocomplete="off" maxlength="5" placeholder="Escribí el código" required><p class="dq-help">Copiá los cinco dígitos de la imagen oficial.</p></div>
+ </div>
+ <div class="dq-actions"><button class="dq-btn" type="submit" disabled>Consultar patente</button></div>
+ </form><div id="dqResult" class="dq-result" role="status" aria-live="polite" aria-atomic="true"></div></section>
+ <aside class="dq-panel"><h3>Información del servicio</h3><ul class="dq-list"><li>Ingresá la patente y el código de la imagen proporcionada por DNRPA.</li><li>El resultado muestra los datos del registro seccional en esta página.</li><li>La consulta es gratuita y no incluye información de titulares.</li><li>Si el código caduca, solicitá uno nuevo con el botón de actualización.</li></ul><p class="dq-source">Fuente: DNRPA. El código se valida en el organismo.</p></aside></div>
  <section aria-labelledby="otrosDisponibles"><h2 id="otrosDisponibles" style="color:#f5c85f;font-size:23px;margin-top:40px">Explorá otros servicios</h2><div class="dq-services"><a class="dq-service-link" href="../prestadores/index.html"><span>Buscador de prestadores</span><small>Servicio gratuito</small></a>
 <a class="dq-service-link" href="../prefijos/index.html"><span>Prefijos telefónicos</span><small>Servicio gratuito</small></a>
 <a class="dq-service-link" href="../dolar/index.html"><span>Cotización del dólar</span><small>Servicio gratuito</small></a>
@@ -109,9 +117,7 @@
 <script src="../../index_files/navbar-dropdown.js.descarga"></script>
 <script src="../comun/nav.js"></script>
 <script src="../comun/base.js"></script>
-<script src="../comun/api-config.js"></script>
-<script src="./js/config.js"></script>
-<script src="../comun/api-client.js"></script>
-<script src="./js/consulta.js"></script>
+<script src="./js/dnrpa-config.js"></script>
+<script src="./js/dnrpa.js"></script>
 </body>
 </html>
