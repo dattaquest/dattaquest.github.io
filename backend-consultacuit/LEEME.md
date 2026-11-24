@@ -6,7 +6,9 @@ El mismo servicio incorpora `POST /api/radicacion`, mediante el formulario públ
 
 Admite formatos nacionales de autos y motos. Devuelve exclusivamente los datos del registro seccional y una fecha de **consulta**, que no es la fecha de actualización de la base. Comparte con CUIL los límites preventivos de frecuencia y el origen permitido.
 
-`GET /api/radicacion/status` carga únicamente el formulario: su resultado positivo confirma estructura y acceso, no una consulta completa de patente. Por eso siempre incluye `consultaPatenteVerificada: false`. No se prueba con patentes o documentos de personas.
+`GET /api/radicacion/status` carga únicamente el formulario. Un HTTP 200 devuelve `estado: "solo_formulario"`, `formularioAccesible: true`, `servicios.radicacion: null` y `consultaPatenteVerificada: false`. El valor `null` expresa disponibilidad de consulta desconocida: no debe interpretarse como servicio operativo. Un fallo de acceso devuelve HTTP 503 y `servicios.radicacion: false`.
+
+La incidencia posterior a v11 se reprodujo con el caso aportado por el usuario, tanto desde DattaQuest como desde los controles del formulario oficial. Argentina.gob.ar devolvió el literal «El vehículo de patente @patente no aparece radicado». El código histórico oficial emite ese mensaje ante un HTTP 500 de su proveedor; no acredita ausencia. El conector lo distingue como `fuente_respuesta_inconclusa` (503), sin afirmar que la patente no exista. Las pruebas automáticas usan fixtures y nunca consultan identificadores por red.
 
 La configuración pública específica está en `otros-servicios/radicacion/js/config.js`; un endpoint vacío desactiva la consulta. Se mantiene así si la fuente rechaza el acceso normal del conector. No se omiten CAPTCHA ni se siguen redirecciones o destinos enviados por la fuente.
 

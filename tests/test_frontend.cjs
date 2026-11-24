@@ -295,6 +295,7 @@ async function test(name, callback) { await callback(); passed++; console.log('O
     for (const [code, expected] of [
       ['formulario_cambiado', /cambió su formulario/], ['fuente_restringida', /restringió el acceso/],
       ['fuente_no_disponible', /fuente de consulta no está disponible/], ['servicio_no_disponible', /No se pudo completar/],
+      ['fuente_respuesta_inconclusa', /Radicación no confirmada.*Argentina.gob.ar.*quedó sin verificar/],
       ['respuesta_no_verificada', /No se pudo verificar la radicación/], ['limite_consultas', /Esperá unos minutos/],
       ['limite_diario', /mañana/]
     ]) {

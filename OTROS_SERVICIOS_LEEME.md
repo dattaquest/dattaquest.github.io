@@ -6,7 +6,7 @@ Repositorio: `dattaquest/dattaquest.github.io`.
 
 **CUIL/CUIT utiliza ahora ConsultaCUIT, sin credenciales ni suscripción de ese proveedor.** Se conecta mediante su endpoint exclusivo en `otros-servicios/cuil/js/config.js`. El conector de servidor resuelve CORS y devuelve sólo una clave verificada. La comprobación de estado y las pruebas sintéticas no sustituyen una consulta final con un DNI propio.
 
-**Radicación tiene habilitado un conector al formulario público de Argentina.gob.ar.** Se comprobó que el servidor publicado carga y reconoce el formulario oficial. Su activación se controla desde `otros-servicios/radicacion/js/config.js`: un endpoint vacío la deshabilita y evita recurrir automáticamente a Chasis. Está pendiente comprobar una consulta completa de un vehículo autorizado.
+**Radicación tiene conectado el formulario público de Argentina.gob.ar, pero no se ha verificado una consulta completa exitosa.** El caso aportado por el usuario falla también en el formulario oficial: la fuente devuelve una respuesta ambigua. El estado técnico distingue formulario accesible de consulta operativa; no anuncia disponibilidad sólo porque la página cargue. Su activación se controla desde `otros-servicios/radicacion/js/config.js`: un endpoint vacío la deshabilita y evita recurrir automáticamente a Chasis.
 
 ## Qué cambia en v11
 
@@ -41,7 +41,7 @@ Repositorio: `dattaquest/dattaquest.github.io`.
 | Prefijos | Consulta de códigos y localidades desde los archivos locales. |
 | Dólar | Cotizaciones mediante DolarAPI; conserva caché local y muestra la fecha de los datos. |
 | CUIL / CUIT | ConsultaCUIT, mediante conector propio y sin credenciales del proveedor. Cobertura tributaria parcial; no es una constancia de ANSES. |
-| Radicación | Conector habilitado al formulario público de Argentina.gob.ar. Acceso al formulario comprobado; consulta completa con una patente autorizada pendiente. Chasis queda como opción anterior sin activar. |
+| Radicación | Formulario oficial conectado, con fallo de consulta reproducido en la propia fuente. El estado estructural no confirma disponibilidad. Chasis queda sin activar. |
 | IMEI | Validación del formato y dígito; marca/modelo por TAC en catálogos locales. El bloqueo sigue siendo un conector opcional y no se deduce del TAC. |
 
 Los seis servicios presentan etiquetas y valores por líneas. Radicación incluye atribución de su fuente cuando está informada. La atribución de licencia del catálogo TAC se conserva fuera de la consulta.

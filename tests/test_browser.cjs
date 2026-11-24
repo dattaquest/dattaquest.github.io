@@ -298,6 +298,7 @@ async function simpleForm(page) {
   for (const [error, status, expected] of [
     ['formulario_cambiado', 503, /cambió su formulario/], ['fuente_restringida', 503, /restringió el acceso/],
     ['fuente_no_disponible', 503, /fuente de consulta no está disponible/], ['servicio_no_disponible', 503, /No se pudo completar/],
+    ['fuente_respuesta_inconclusa', 503, /Radicación no confirmada.*Argentina.gob.ar.*quedó sin verificar/],
     ['limite_consultas', 429, /Esperá unos minutos/], ['limite_diario', 429, /mañana/]
   ]) {
     state.radicacion = {status, body: {error}};

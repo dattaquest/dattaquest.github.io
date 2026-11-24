@@ -4,7 +4,15 @@
 
 ConsultaCUIT continúa siendo la fuente activa de DNI → CUIT. Su funcionamiento fue confirmado por el propietario de DattaQuest. La fuente es un padrón tributario, y cambiar la etiqueta de su respuesta a CUIL no amplía su cobertura ni acredita una asignación de ANSES.
 
-La versión 11 incorpora y habilita un adaptador para el formulario público de radicación de Argentina.gob.ar. El conector publicado pudo cargar y reconocer el formulario oficial el 23/11/2026: `/api/radicacion/status` respondió con `radicacion: true` y `consultaPatenteVerificada: false`. Está pendiente comprobar una consulta completa con una patente autorizada. El archivo `otros-servicios/radicacion/js/config.js` es la referencia del estado activo: vaciar su endpoint permite deshabilitar la consulta. No se activan proveedores comerciales como alternativa automática.
+La versión 11 incorpora un adaptador para el formulario público de radicación de Argentina.gob.ar. La comprobación inicial sólo confirmó acceso al formulario. Después, el caso aportado por el usuario falló tanto en DattaQuest como en el formulario oficial. No se ha verificado una consulta completa exitosa. La corrección posterior elimina el indicador positivo de servicio: `/api/radicacion/status` informa `radicacion: null`, `formularioAccesible: true`, `estado: "solo_formulario"` y `consultaPatenteVerificada: false` cuando únicamente logra cargar el formulario. El archivo `otros-servicios/radicacion/js/config.js` controla la conexión; vaciar su endpoint permite deshabilitarla. No se activan proveedores comerciales como alternativa automática.
+
+### Incidencia reproducida y alternativa
+
+El formulario oficial mostró literalmente «El vehículo de patente @patente no aparece radicado», sin sustituir el marcador. El [código histórico oficial](https://github.com/argob/drupal-argentina-distro/blob/master/modules/argentinagobar/argentinagobar_formularios/src/Consulta/ConsultaRadicacionPorDominio.php) genera ese mensaje ante un HTTP 500 del servicio interno. La observación demuestra una respuesta inconclusa para el caso probado; no demuestra inexistencia de la patente ni permite afirmar que fallen todas las consultas. Los registros de DattaQuest muestran respuestas en unos 2–3 segundos, sin agotar el límite de espera.
+
+La corrección clasifica este caso como `fuente_respuesta_inconclusa` (503) y presenta «Radicación no confirmada». No constituye una reparación del servicio externo ni una nueva fuente de datos.
+
+La alternativa pública identificada es [DNRPA — Radicación por Patente](https://www.dnrpa.gov.ar/portal_dnrpa/radicacion2.php), que requiere Dominio y Código verificador. No se comprobó una consulta completa en ese formulario ni su independencia del fallo de Argentina.gob.ar. Integrarlo requiere revisar la condición del producto que excluye el verificador; no se lo omite ni se agrega una redirección al sitio.
 
 ## CUIL: opciones investigadas
 
@@ -63,11 +71,12 @@ Los [términos de Argentina.gob.ar](https://www.argentina.gob.ar/terminos-y-cond
 - [Portal clásico DNRPA](https://www.dnrpa.gov.ar/portal_dnrpa/radicacion2.php): consulta gratuita con código verificador; no se omite ese control.
 - [Chasis](https://www.chasis.com.ar/docs): API documentada de radicación con clave y consumo de créditos. Su sandbox responde con datos ficticios. El adaptador existente queda sin activar como alternativa de pago.
 - [Patente.ar](https://patente.ar/api-vehicular) y [API.ar](https://api.ar/precios/): API keys y créditos/cotización; no se verificó un plan gratuito permanente que cumpla el requisito.
-- [Clasificar](https://clasific.ar/precios-api): tiene un plan gratuito con cupo, pero la documentación de vehículos revisada no especifica el campo de radicación ni su inclusión en ese plan. No se integra suponiendo esa cobertura.
+- [Clasificar V2](https://clasific.ar/docs/v2/vehicles): exige API key. Su documentación actual describe lectura de datos históricos y reserva `onMiss=search` y `refresh=true` para planes pagos; no documenta un campo de radicación en el contrato revisado. No se integra suponiendo una cobertura gratuita de registro vigente.
+- [Argenapi](https://www.argenapi.com/docs/patentes/consulta): permite solicitar sólo `radicacion: true`, con cobertura nacional y un crédito por operación. Requiere API key y créditos; no cumple las condiciones de costo cero y ausencia de cuenta.
 - El directorio de registros seccionales identifica oficinas, pero no vincula por sí mismo cada patente con su registro actual.
 
 ## Verificación y activación
 
 Las pruebas de contratos utilizan respuestas sintéticas; no envían documentos ni patentes a fuentes externas. La comprobación pública `/api/radicacion/status` sólo carga el formulario y declara `consultaPatenteVerificada: false`. No debe confundirse con una consulta productiva de un vehículo.
 
-La configuración de radicación se habilita únicamente después de comprobar el acceso normal desde el conector publicado. Si la fuente lo rechaza, se conserva el código probado sin anunciar disponibilidad ni ampliar permisos para sortear la restricción.
+La conexión al formulario se mantiene para tramitar solicitudes, pero la disponibilidad de la consulta no se deduce del acceso al formulario. Un cambio de estructura o una restricción detienen la consulta. No se amplían permisos ni se omiten controles para sortear esa restricción.

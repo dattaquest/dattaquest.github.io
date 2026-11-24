@@ -17,6 +17,7 @@
     formulario_cambiado: ['Consulta temporalmente no disponible', 'La fuente cambió su formulario y la consulta necesita una actualización. Intentá nuevamente más tarde.'],
     fuente_restringida: ['Consulta temporalmente no disponible', 'La fuente de consulta restringió el acceso. Intentá nuevamente más tarde.'],
     fuente_no_disponible: ['Consulta temporalmente no disponible', 'La fuente de consulta no está disponible. Intentá nuevamente más tarde.'],
+    fuente_respuesta_inconclusa: ['Radicación no confirmada', 'Argentina.gob.ar devolvió una respuesta que no permite confirmar el registro de esa patente. La consulta quedó sin verificar.'],
     respuesta_no_verificada: ['No se pudo verificar la radicación', 'La respuesta recibida no permite confirmar la radicación de esa patente. Intentá nuevamente más tarde.'],
     dato_invalido: invalidPlate,
     solicitud_duplicada: ['Consulta ya recibida', 'Esta solicitud ya fue procesada. Podés iniciar una nueva consulta.'],

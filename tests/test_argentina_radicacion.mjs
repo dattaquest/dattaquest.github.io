@@ -94,10 +94,19 @@ test('datos extra, scripts y atributos ejecutables no salen ni se ejecutan',asyn
   const s=scenario({result:commands(panel('ZZ123ZZ','<label>Titular</label><p>NO DEVOLVER</p><script>throw new Error("not executed")</script>'))});
   const out=await s.run();assert.doesNotMatch(JSON.stringify(out),/NO DEVOLVER|script|not executed|javascript|SESSION|form-/);
 });
-test('no aparece radicado es fallo ambiguo, nunca ausencia cierta',async()=>{
+test('no aparece radicado, incluso con @patente literal, es una respuesta inconclusa y nunca 404',async()=>{
   for(const html of ['<div id="contenedor"><h2>El vehículo de patente ZZ123ZZ no aparece radicado</h2></div>',
-    '<div id="contenedor"><h2>ZZ123ZZ no es una patente válida</h2></div>']){
-    const s=scenario({result:commands(html)});await rejects(s.run(),'fuente_no_disponible',503);
+    '<form id="consulta-radicacion-dominio"><div id="contenedor"><h2>El vehículo de patente @patente no aparece radicado</h2><p>Comunicate con la DNRPA.</p></div></form>']){
+    const s=scenario({result:commands(html)});await rejects(s.run(),'fuente_respuesta_inconclusa',503);
+    assert.equal(s.calls.length,2);
+  }
+});
+test('la respuesta inconclusa se distingue de errores HTTP, de red y de servicio',async()=>{
+  for(const second of [response('error sintético',500,'text/html'),()=>{throw new Error('detalle privado');},
+    response(commands('<div id="contenedor"><h2>@patente no es una patente válida</h2></div>')),
+    response(commands('<div id="contenedor"><h2>Servicio no disponible</h2></div>'))]){
+    const s=scenario({second});await rejects(s.run(),'fuente_no_disponible',503);
+    assert.equal(s.calls.length,2);
   }
 });
 test('JSON, MIME, tamaños y comandos inválidos no producen verificado',async()=>{
