@@ -59,7 +59,7 @@ function cleanText(html){
  return decode(html.replace(/<!--[\s\S]*?-->/g,' ').replace(/<(script|style|noscript|template)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,' ').replace(/<[^>]*>/g,' ')).replace(/\s+/g,' ').trim();
 }
 const labels=[
- ['patente','Dominio'],['tipoVehiculo','Tipo de Veh[ií]culo'],['registro','Registro Seccional'],['direccion','Direcci[oó]n'],['localidad','Localidad'],['provincia','Provincia'],['codigoPostal','C[oó]digo Postal'],['telefono','Tel[eé]fono'],['fechaFuente','Fecha']
+ ['patente','Dominio'],['tipoVehiculo','Tipo de Veh[ií]culo'],['registro','Registro Seccional'],['direccion','Direcci[oó]n'],['localidad','Localidad'],['provincia','Provincia'],['codigoPostal','C[oó]digo Postal'],['telefono','Tel[eéó]fono'],['fechaFuente','Fecha']
 ];
 export function parseResult(html,patente){
  if(restricted(html))throw fail('fuente_restringida');
