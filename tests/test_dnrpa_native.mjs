@@ -10,7 +10,28 @@ test('rechaza otros destinos, nuevos controles y bloqueos',()=>{for(const html o
 test('resultado de oficina basado en el formato visual aportado, con valores sintéticos',()=>{const d=parseResult(result,'ZZZ123');assert.equal(d.registro,'00001 - REGISTRO DE PRUEBA');assert.equal(d.tipoVehiculo,'AUTOMOTOR');assert.equal(d.direccion,'CALLE DE PRUEBA 123');assert.equal(d.provincia,'PROVINCIA DE PRUEBA');assert.equal(d.codigoPostal,'C0000');assert.equal(d.telefono,'0000-0000');assert.equal(d.horario,'08:30 a 14:30 hs.');assert.equal(d.fechaFuente,'23/11/2026');assert.equal(d.fuente,'DNRPA');});
 test('no valida resultados sin la patente correcta o sin registro',()=>{assert.throws(()=>parseResult(result,'ABC123'));assert.throws(()=>parseResult(result.replace('Registro Seccional. 00001 - REGISTRO DE PRUEBA',''),'ZZZ123'));});
 test('conserva cookie sólo en servidor y no resuelve el código',async()=>{const s=await challenge(async(url,init)=>{assert.equal(url,FORM);assert.equal(init.method,'GET');return response(FORM_HTML,{'Set-Cookie':'PHPSESSID=fixture; Path=/; Secure; HttpOnly'});});assert.equal(s.imagen,IMAGE);assert.equal(s.cookie,'PHPSESSID=fixture');const data=await query({patente:'ZZZ123',verificador:'00000',cookie:s.cookie,fetchImpl:async(url,init)=>{assert.equal(url,POST);assert.equal(init.method,'POST');assert.equal(init.headers.Cookie,'PHPSESSID=fixture');assert.equal(init.body,'dominio=ZZZ123&verificador=00000');return response(result);}});assert.equal(data.verificado,true);assert.ok(!JSON.stringify(data).includes('fixture'));});
-test('sin sesión oficial no solicita resultado',async()=>{await assert.rejects(challenge(async()=>response(FORM_HTML)),e=>e.code==='formulario_cambiado');await assert.rejects(query({patente:'ZZZ123',verificador:'abc',cookie:'fixture',fetchImpl:()=>assert.fail('No debe enviar')}),e=>e.code==='dato_invalido');});
+test('envía los dos campos cuando el formulario oficial llega sin cookie', async () => {
+ const sesion = await challenge(async () => response(FORM_HTML));
+ assert.equal(sesion.imagen, IMAGE);
+ assert.equal(sesion.cookie, '');
+ const datos = await query({
+  patente: 'ZZZ123', verificador: '00000', cookie: sesion.cookie,
+  fetchImpl: async (url, init) => {
+   assert.equal(url, POST);
+   assert.equal(init.method, 'POST');
+   assert.equal(new Headers(init.headers).has('cookie'), false);
+   assert.equal(init.body, 'dominio=ZZZ123&verificador=00000');
+   return response(result);
+  }
+ });
+ assert.equal(datos.registro, '00001 - REGISTRO DE PRUEBA');
+});
+test('exige el código manual también cuando la fuente no entrega cookie', async () => {
+ await assert.rejects(query({
+  patente:'ZZZ123', verificador:'', cookie:'',
+  fetchImpl: () => assert.fail('No debe enviar la consulta')
+ }), e => e.code === 'dato_invalido');
+});
 test('error de verificador no se trata como ausencia de patente',()=>assert.throws(()=>parseResult('<p>Código verificador incorrecto</p>','ZZZ123'),e=>e.code==='codigo_incorrecto'));
 
 test('separa el teléfono rotulado Telófono por DNRPA del código postal anterior', () => {
