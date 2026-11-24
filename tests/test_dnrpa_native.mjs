@@ -12,3 +12,11 @@ test('no valida resultados sin la patente correcta o sin registro',()=>{assert.t
 test('conserva cookie sólo en servidor y no resuelve el código',async()=>{const s=await challenge(async(url,init)=>{assert.equal(url,FORM);assert.equal(init.method,'GET');return response(FORM_HTML,{'Set-Cookie':'PHPSESSID=fixture; Path=/; Secure; HttpOnly'});});assert.equal(s.imagen,IMAGE);assert.equal(s.cookie,'PHPSESSID=fixture');const data=await query({patente:'ZZZ123',verificador:'00000',cookie:s.cookie,fetchImpl:async(url,init)=>{assert.equal(url,POST);assert.equal(init.method,'POST');assert.equal(init.headers.Cookie,'PHPSESSID=fixture');assert.equal(init.body,'dominio=ZZZ123&verificador=00000');return response(result);}});assert.equal(data.verificado,true);assert.ok(!JSON.stringify(data).includes('fixture'));});
 test('sin sesión oficial no solicita resultado',async()=>{await assert.rejects(challenge(async()=>response(FORM_HTML)),e=>e.code==='formulario_cambiado');await assert.rejects(query({patente:'ZZZ123',verificador:'abc',cookie:'fixture',fetchImpl:()=>assert.fail('No debe enviar')}),e=>e.code==='dato_invalido');});
 test('error de verificador no se trata como ausencia de patente',()=>assert.throws(()=>parseResult('<p>Código verificador incorrecto</p>','ZZZ123'),e=>e.code==='codigo_incorrecto'));
+
+test('separa el teléfono rotulado Telófono por DNRPA del código postal anterior', () => {
+ const tabla = '<table><tr><td>Código Postal. C0000</td><td>Telófono. 0000-0000</td></tr></table>';
+ const html = result.replace('<br>Código Postal. C0000', '').replace('<br>Teléfono. 0000-0000</div>', '</div>' + tabla);
+ const datos = parseResult(html, 'ZZZ123');
+ assert.equal(datos.codigoPostal, 'C0000');
+ assert.equal(datos.telefono, '0000-0000');
+});
