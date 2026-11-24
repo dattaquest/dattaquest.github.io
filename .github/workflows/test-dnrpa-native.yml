@@ -3,7 +3,7 @@ on:
   pull_request:
     paths:
       - 'backend-dnrpa/**'
-      - 'otros-servicios/radicacion/nativa.html'
+      - 'otros-servicios/radicacion/verificar.html'
       - 'otros-servicios/radicacion/js/dnrpa*'
       - 'otros-servicios/radicacion/css/dnrpa.css'
       - 'tests/test_dnrpa_native.mjs'

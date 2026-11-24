@@ -9,3 +9,14 @@
 .dq-native-panel .dq-result-fields .dq-field-row{border-bottom:1px solid #394b32;padding:6px 0;display:grid;grid-template-columns:minmax(100px,36%) minmax(0,1fr);gap:8px}
 .dq-native-panel .dq-result-fields .dq-field-row:last-child{border:0}
 @media(max-width:600px){.dq-rad-fields{grid-template-columns:1fr;gap:0}.dq-captcha-line{max-width:245px}.dq-native-panel .dq-result-fields .dq-field-row{display:block}}
+
+#dqValue { text-transform: uppercase; }
+#dqVerifier { font-variant-numeric: tabular-nums; letter-spacing: .07em; }
+#dqVerifier::placeholder { letter-spacing: normal; }
+.dq-native-panel .dq-result > strong { display: block; font-size: 1.15rem; }
+.dq-native-panel .dq-result-fields dt { color: #c3d1bd; }
+.dq-native-panel .dq-result-fields dd { color: #f5f6f3; }
+@media(max-width:600px) {
+  .dq-native-panel .dq-result-fields dt,
+  .dq-native-panel .dq-result-fields dd { display: block; }
+}

@@ -35,7 +35,7 @@ try{
   await route.fulfill({status:!challenge&&fail?422:200,headers,contentType:'application/json',body:JSON.stringify(payload)});
  });
  const page=await context.newPage();page.on('popup',()=>popups++);
- await page.goto(base+'/otros-servicios/radicacion/nativa.html');
+ await page.goto(base+'/otros-servicios/radicacion/verificar.html');
  const submit=page.locator('#dqForm button[type=submit]');
  await page.waitForFunction(()=>!document.querySelector('#dqForm button[type=submit]').disabled);
  assert.equal(await page.locator('iframe').count(),0);
@@ -48,7 +48,7 @@ try{
  assert.equal(await page.locator('#dqResult > strong').textContent(),'Radicación del vehículo');
  assert.match(await page.locator('#dqResult').textContent(),/00001 - REGISTRO SINTÉTICO/);
  assert.doesNotMatch(await page.locator('#dqResult').textContent(),/NO MOSTRAR/);
- assert.equal(popups,0);assert.equal(page.url(),base+'/otros-servicios/radicacion/nativa.html');
+ assert.equal(popups,0);assert.equal(page.url(),base+'/otros-servicios/radicacion/verificar.html');
  assert.equal(await submit.isDisabled(),true);
  assert.equal(requests.length,2);assert.equal(requests[1].body.verificador,'00000');
  await mkdir('test-results',{recursive:true});await page.screenshot({path:'test-results/radicacion-nativa-desktop.png',fullPage:true});
