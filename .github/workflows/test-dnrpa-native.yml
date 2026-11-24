@@ -25,10 +25,21 @@ jobs:
         run: |
           node --input-type=module <<'JS'
           import {challenge} from './backend-dnrpa/provider.mjs';
-          const c=await challenge();
-          console.log('Imagen PNG oficial y cookie de sesión presentes. No se muestran valores ni se consulta ninguna patente.');
+          import {FORM,parseForm} from './backend-dnrpa/provider.mjs';
+          const r=await fetch(FORM,{redirect:'manual',cache:'no-store',headers:{Accept:'text/html'},signal:AbortSignal.timeout(14000)});
+          const names=r.headers.getSetCookie().map(v=>({
+            nombre:v.split('=',1)[0],path:/;\s*path=([^;]+)/i.exec(v)?.[1]??'(default)',
+            domain:/;\s*domain=([^;]+)/i.exec(v)?.[1]??'(host)',
+            expirada:/;\s*max-age=0(?:;|$)/i.test(v)
+          }));
+          console.log(JSON.stringify({http:r.status,cookies:names,cache:r.headers.get('cache-control'),age:r.headers.get('age')}));
+          if(r.status!==200)throw Error('Formulario no accesible');
+          parseForm(await r.text());
+          console.log('Estructura e imagen oficiales presentes; no se imprime la imagen ni se envían datos.');
+          if(!names.length)throw Error('DNRPA no entregó cookies de sesión; no se enviará consulta.');
           JS
       - name: Verificar si existe configuración de despliegue ya disponible
+        if: always()
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
