@@ -20,7 +20,54 @@
 .navbar .dq-nav-trigger{display:inline-flex;align-items:center;justify-content:center;min-height:42px;font-size:16px!important;line-height:1.1!important;vertical-align:middle;}
 .navbar #accordion .card,.navbar #accordion .card-header{background:transparent!important;border:0!important;box-shadow:none!important;margin:0!important;padding:0!important;}
 .navbar #tupapa{margin:0!important;line-height:1!important;}
-.navbar #tumama{position:static!important;top:auto!important;min-height:42px;line-height:1.1!important;font-size:16px!important;vertical-align:middle;padding:8px 7px!important;}
+.navbar #tumama {
+  position: static;
+  min-height: 42px;
+  padding: 8px 7px;
+  border: 0;
+  color: #f5c85f;
+  background: #000;
+  font: 16px/1.1 sans-serif;
+  vertical-align: middle;
+  cursor: pointer;
+}
+.navbar #accordion > .card {position: relative;}
+.navbar #collapseOne {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1500;
+  width: min(250px, calc(100vw - 2rem));
+}
+.navbar #tuhijo {
+  width: 100%;
+  max-height: min(60vh, 430px);
+  overflow-y: auto;
+  padding: 7px 11px;
+  border: 1px solid #9f7535;
+  background: #131313;
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+}
+.navbar #tuhijo a.nav-link {
+  display: block;
+  margin: 0 !important;
+  padding: 10px 8px !important;
+  color: #f5c85f !important;
+  text-align: center;
+  white-space: normal;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.navbar #tuhijo a:hover, .navbar #tuhijo a:focus {
+  background: #473415;
+  color: #fff !important;
+}
+.navbar #tuhijo hr {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid #755e00;
+}
 .navbar .dq-nav-box{display:flex;align-items:center;justify-content:center;}
 @media(min-width:992px){
  .navbar #navbarSupportedContent>.navbar-nav{display:flex!important;flex-flow:row nowrap!important;align-items:center!important;justify-content:center!important;gap:13px;}
@@ -34,8 +81,9 @@
 @media(max-width:991px){
  .navbar #navbarSupportedContent>.navbar-nav{align-items:stretch!important;}
  .navbar #navbarSupportedContent>.navbar-nav>li{list-style:none;}
+ .navbar #navbarSupportedContent.show:has(#collapseOne.show, #collapseOne.collapsing) {overflow:visible;}
  .navbar .dq-nav-trigger{width:100%;justify-content:flex-start;}
  .navbar .dq-nav-box{display:block;}
- .navbar #accordion{width:100%;}
- .navbar #tumama{width:100%;text-align:left;}
+ .navbar .dq-servicios-nav,.navbar #accordion{width:100%;}
+ .navbar #tumama{width:100%;text-align:center;}
 }

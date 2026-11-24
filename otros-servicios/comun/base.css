@@ -54,17 +54,6 @@ body.dq-page:before{content:'';position:fixed;inset:0;pointer-events:none;backgr
 @media(max-width:991px){.dq-main{padding-top:120px}.dq-grid{grid-template-columns:1fr}.dq-services{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.dq-main{padding:110px 12px 35px}.dq-hero{padding:26px 21px}.dq-panel{padding:22px 18px}.dq-services{grid-template-columns:1fr}.dq-quote-grid{grid-template-columns:1fr}.dq-hero p{font-size:15px}}
 
-/* Apariencia del desplegable histórico SERVICIOS, originalmente declarada inline. */
-.dq-page #tumama{color:#f5c85f!important;font-size:17.4px;font-family:sans-serif;background:#000;border:0;cursor:pointer;padding:8px 7px}
-.dq-page #tupapa{position:relative}
-.dq-page #tuhijo{width:220px;max-width:90vw;background:#121212;border:1px solid #806526;color:#f5c85f}
-.dq-page #collapseOne{position:absolute;top:100%;z-index:1450}
-.dq-page #tuhijo .nav-link{color:#f5c85f!important;font-size:14px;padding:9px 8px}
-.dq-page #tuhijo .nav-link:hover{color:#fff!important;background:#473415}
-@media(max-width:991px){.dq-page #collapseOne{position:static}.dq-page #tuhijo{width:100%}}
-/* El menú de Servicios original no debe verse como una tarjeta blanca en estas páginas. */
-.dq-page #accordion > .card,
-.dq-page #accordion > .card > .card-header {background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;margin:0!important}
 .dq-page .navbar .nav-item > a:not(.dq-service-link){color:#f5c85f!important}
 
 .dq-result-action{display:inline-block;margin-top:12px;color:#f5c85f!important;text-decoration:underline;font-weight:650;}
