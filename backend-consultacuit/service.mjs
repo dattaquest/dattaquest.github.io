@@ -97,11 +97,13 @@ export function createConsultaCuitService({fetchImpl = (...args) => fetch(...arg
         const health = await radicacionHealth({fetchImpl, signal: request.signal});
         if (health?.disponible !== true) throw error('fuente_no_disponible');
         return json(200, {version: 11, proveedor: 'Argentina.gob.ar / DNRPA',
-          servicios: {radicacion: true}, consultaPatenteVerificada: false}, cors);
+          servicios: {radicacion: null}, formularioAccesible: true,
+          consultaPatenteVerificada: false, estado: 'solo_formulario'}, cors);
       } catch (failure) {
         const code = ['fuente_restringida', 'formulario_cambiado', 'limite_consultas'].includes(failure?.code)
           ? failure.code : 'fuente_no_disponible';
-        return json(503, {error: code, servicios: {radicacion: false}, consultaPatenteVerificada: false}, cors);
+        return json(503, {error: code, servicios: {radicacion: false}, formularioAccesible: false,
+          consultaPatenteVerificada: false}, cors);
       }
     }
     if (path !== '/api/cuil' && path !== '/api/radicacion') return json(404, {error: 'no_disponible'}, cors);

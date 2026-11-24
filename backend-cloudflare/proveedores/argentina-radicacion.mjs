@@ -188,7 +188,8 @@ function parseResult(commands, plate) {
     const tree = restricted(command.data);
     const message = norm(textOf(tree));
     // El código oficial histórico emite este mensaje también ante HTTP 500.
-    if (/no aparece radicado|no es una patente valida|servicio no disponible|error del servicio|acceso denegado/.test(message)) throw fail('fuente_no_disponible');
+    if (/no aparece radicado/.test(message)) throw fail('fuente_respuesta_inconclusa');
+    if (/no es una patente valida|servicio no disponible|error del servicio|acceso denegado/.test(message)) throw fail('fuente_no_disponible');
     if (!['replace','replaceWith','html',null].includes(command.method)) {
       // Drupal puede anteponer mensajes: nunca convertirlos en un resultado.
       if (command.data.trim()) throw fail('respuesta_no_verificada', 502);

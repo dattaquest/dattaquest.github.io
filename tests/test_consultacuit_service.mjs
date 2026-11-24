@@ -148,8 +148,43 @@ test('estado de radicación verifica sólo el formulario y no afirma una consult
   const response = await service(new Request('https://conector.example/api/radicacion/status'));
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {version: 11, proveedor: 'Argentina.gob.ar / DNRPA',
-    servicios: {radicacion: true}, consultaPatenteVerificada: false});
+    servicios: {radicacion: null}, formularioAccesible: true, consultaPatenteVerificada: false,
+    estado: 'solo_formulario'});
   assert.equal(calls, 1);
+});
+
+test('formulario válido no acredita una consulta y @patente sin radicación conserva el error inconcluso', async () => {
+  const formUrl = 'https://www.argentina.gob.ar/propiedadautomotor/consultar-radicacion-vehiculo';
+  const html = `<form id="consulta-radicacion-dominio" action="/propiedadautomotor/consultar-radicacion-vehiculo" method="post">
+    <div id="contenedor"><input name="patente" type="text"><button type="submit" name="op" value="Consultalo">Consultalo</button></div>
+    <input type="hidden" name="form_build_id" value="form-SYNTHETIC_BUILD_123456">
+    <input type="hidden" name="form_id" value="consulta_radicacion_dominio"><input name="tarro_de_miel" type="text" value=""></form>`;
+  const commands = [{command: 'insert', method: null, selector: null,
+    data: '<form id="consulta-radicacion-dominio"><div id="contenedor"><h2>El vehículo de patente @patente no aparece radicado</h2><p>Comunicate con la DNRPA.</p></div></form>'}];
+  const calls = [];
+  const service = createConsultaCuitService({
+    lookup: async () => assert.fail('No debe consultar documentos'),
+    fetchImpl: async (url, init) => {
+      calls.push({url, method: init.method});
+      assert.equal(init.redirect, 'manual');
+      if (url === formUrl && init.method === 'GET') return new Response(html, {headers: {'Content-Type': 'text/html'}});
+      assert.equal(url, 'https://www.argentina.gob.ar/system/ajax');
+      assert.equal(init.method, 'POST');
+      return Response.json(commands);
+    },
+  });
+  const health = await service(new Request('https://conector.example/api/radicacion/status'));
+  assert.equal(health.status, 200);
+  assert.deepEqual(await health.json(), {version: 11, proveedor: 'Argentina.gob.ar / DNRPA',
+    servicios: {radicacion: null}, formularioAccesible: true, consultaPatenteVerificada: false,
+    estado: 'solo_formulario'});
+  assert.deepEqual(calls, [{url: formUrl, method: 'GET'}]);
+  const result = await service(vehicleRequest('ZZ123ZZ'));
+  assert.equal(result.status, 503);
+  assert.deepEqual(await result.json(), {error: 'fuente_respuesta_inconclusa'});
+  assert.equal(result.headers.get('Cache-Control'), 'no-store');
+  assert.deepEqual(calls, [{url: formUrl, method: 'GET'}, {url: formUrl, method: 'GET'},
+    {url: 'https://www.argentina.gob.ar/system/ajax', method: 'POST'}]);
 });
 
 test('restricciones, cambios de formulario y fallos no se anuncian como radicación inexistente', async () => {
@@ -159,7 +194,8 @@ test('restricciones, cambios de formulario y fallos no se anuncian como radicaci
       radicacionLookup: async () => {throw failure;}});
     const health = await service(new Request('https://conector.example/api/radicacion/status'));
     assert.equal(health.status, 503);
-    assert.deepEqual(await health.json(), {error: code, servicios: {radicacion: false}, consultaPatenteVerificada: false});
+    assert.deepEqual(await health.json(), {error: code, servicios: {radicacion: false}, formularioAccesible: false,
+      consultaPatenteVerificada: false});
     const response = await service(vehicleRequest());
     assert.equal(response.status, 503);
     assert.deepEqual(await response.json(), {error: code});
