@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 
 const base = 'otros-servicios/radicacion/';
-const html = await readFile(base + 'verificar.html', 'utf8');
+const html = await readFile(base + 'index.html', 'utf8');
 assert.doesNotMatch(html, /<iframe\b/i);
 for (const id of ['dqForm', 'dqVerifier', 'dqCaptcha', 'dqResult']) {
   assert.ok(html.includes('id="' + id + '"'), id);
