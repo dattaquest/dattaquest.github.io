@@ -7,13 +7,14 @@ on:
       - 'otros-servicios/radicacion/js/dnrpa*'
       - 'otros-servicios/radicacion/css/dnrpa.css'
       - 'tests/test_dnrpa_native.mjs'
+      - 'tests/test_dnrpa_browser.mjs'
       - '.github/workflows/test-dnrpa-native.yml'
 permissions:
   contents: read
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,6 +22,11 @@ jobs:
           node-version: '24'
       - run: node --test tests/test_dnrpa_native.mjs
       - run: node --check otros-servicios/radicacion/js/dnrpa.js && node --check backend-dnrpa/worker.mjs
+      - name: Probar el formulario nativo con respuestas simuladas
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx playwright install chromium
+          node tests/test_dnrpa_browser.mjs
       - name: Comprobar sólo el formulario oficial y la existencia de sesión (sin resolver código)
         run: |
           node --input-type=module <<'JS'
@@ -49,3 +55,11 @@ jobs:
           else
             echo "Configuración Cloudflare ausente."
           fi
+      - name: Capturas del formulario nativo con datos sintéticos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: radicacion-nativa-capturas
+          path: test-results/radicacion-nativa-*.png
+          if-no-files-found: ignore
+          retention-days: 7
