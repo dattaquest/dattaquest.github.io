@@ -35,7 +35,7 @@ function cookiePairs(headers){
   const path=/;\s*path=([^;]+)/i.exec(value)?.[1];if(path&&!new URL(POST).pathname.startsWith(path))continue;
   out.push(pair);
  }
- if(!out.length||out.join('; ').length>8192)throw fail('formulario_cambiado',502);
+ if(out.join('; ').length>8192)throw fail('formulario_cambiado',502);
  return out.join('; ');
 }
 async function receive(fetchImpl,url,init){
@@ -84,7 +84,9 @@ export function validateQuery(patente,verificador){
 }
 export async function query({patente,verificador,cookie,fetchImpl=fetch}){
  validateQuery(patente,verificador);
- if(typeof cookie!=='string'||!cookie||/[\r\n]/.test(cookie))throw fail('sesion_vencida',409);
- const r=await receive(fetchImpl,POST,{method:'POST',headers:{Accept:'text/html','Content-Type':'application/x-www-form-urlencoded',Cookie:cookie},body:new URLSearchParams({dominio:patente,verificador}).toString()});
+ if(typeof cookie!=='string'||/[\r\n]/.test(cookie))throw fail('sesion_vencida',409);
+ const headers = {Accept:'text/html','Content-Type':'application/x-www-form-urlencoded'};
+ if (cookie) headers.Cookie = cookie;
+ const r=await receive(fetchImpl,POST,{method:'POST',headers,body:new URLSearchParams({dominio:patente,verificador}).toString()});
  return parseResult(r.text,patente);
 }
