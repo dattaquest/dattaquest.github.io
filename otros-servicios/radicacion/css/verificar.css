@@ -1,0 +1,5 @@
+.dq-official-panel { max-width:100%; min-width:0; }
+.dq-official-frame { width:100%; height:820px; min-height:600px; border:1px solid #755e00; border-radius:8px; background:#fff; display:block; }
+.dq-official-actions { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin:16px 0; }
+.dq-official-back { color:#f5c85f; text-decoration:underline; }
+@media(max-width:600px){.dq-official-frame{height:920px;}.dq-official-actions{align-items:flex-start; flex-direction:column;}}
