@@ -67,7 +67,7 @@ export function parseResult(html,patente){
  if(/(?:c[oó]digo|verificador|captcha).{0,40}(?:incorrecto|inv[aá]lido|no coincide|err[oó]neo)|(?:incorrecto|inv[aá]lido).{0,25}(?:verificador|captcha)/i.test(t))throw fail('codigo_incorrecto',422);
  if(!/RADICACI[OÓ]N\s+POR\s+PATENTE/i.test(t)||!/Fuente de la informaci[oó]n\s*[:.]\s*D\.?\s*N\.?\s*R\.?\s*P\.?\s*A\.?/i.test(t))throw fail('respuesta_no_verificada',502);
  const stops=labels.map(x=>x[1]).join('|');
- const boundary='(?=\\s*(?:'+stops+')[.:\\s]+|\\s*\\*{1,2}|\\s*El horario de atenci[oó]n|\\s*Fuente de la informaci[oó]n|\\s*Imprimir\\b|\\s*Cerrar\\b|$)';
+ const boundary='(?=\\s*(?:'+stops+')\\s*[.:]\\s*|\\s*\\*{1,2}|\\s*El horario de atenci[oó]n|\\s*Fuente de la informaci[oó]n|\\s*Imprimir\\b|\\s*Cerrar\\b|$)';
  const out={};
  for(const [key,label] of labels){
   const matches=[...t.matchAll(new RegExp('\\b(?:'+label+')\\s*[.:]\\s*(.*?)'+boundary,'gi'))];
