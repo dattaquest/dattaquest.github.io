@@ -1,0 +1,20 @@
+name = "dattaquest-dnrpa"
+main = "worker.mjs"
+compatibility_date = "2026-11-20"
+workers_dev = true
+
+[[durable_objects.bindings]]
+name = "SESSIONS"
+class_name = "DnrpaSession"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["DnrpaSession"]
+
+[[ratelimits]]
+name = "RAD_LIMIT"
+namespace_id = "1011"
+simple = { limit = 8, period = 60 }
+
+[observability]
+enabled = false

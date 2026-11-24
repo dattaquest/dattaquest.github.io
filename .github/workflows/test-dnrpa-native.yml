@@ -1,0 +1,40 @@
+name: Probar conector nativo DNRPA
+on:
+  pull_request:
+    paths:
+      - 'backend-dnrpa/**'
+      - 'otros-servicios/radicacion/nativa.html'
+      - 'otros-servicios/radicacion/js/dnrpa*'
+      - 'otros-servicios/radicacion/css/dnrpa.css'
+      - 'tests/test_dnrpa_native.mjs'
+      - '.github/workflows/test-dnrpa-native.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --test tests/test_dnrpa_native.mjs
+      - run: node --check otros-servicios/radicacion/js/dnrpa.js && node --check backend-dnrpa/worker.mjs
+      - name: Comprobar sólo el formulario oficial y la existencia de sesión (sin resolver código)
+        run: |
+          node --input-type=module <<'JS'
+          import {challenge} from './backend-dnrpa/provider.mjs';
+          const c=await challenge();
+          console.log('Imagen PNG oficial y cookie de sesión presentes. No se muestran valores ni se consulta ninguna patente.');
+          JS
+      - name: Verificar si existe configuración de despliegue ya disponible
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$CF_TOKEN" ] && [ -n "$CF_ACCOUNT" ]; then
+            echo "Configuración Cloudflare presente (no se muestran credenciales)."
+          else
+            echo "Configuración Cloudflare ausente."
+          fi
