@@ -31,7 +31,6 @@ const server = http.createServer((req, res) => {
 });
 const state = {
   configured: true,
-  cuilHabilitado: false,
   current: null,
   cuil: {status: 200, body: {verificado: true, tipoClave: 'CUIT', dni: '12345678', cuit: '20123456786',
     fuente: 'ConsultaCUIT', fechaPadron: '2026-10-10'}},
@@ -82,6 +81,11 @@ async function simpleForm(page) {
     }
     if (url.origin === 'https://dattaquest-consultacuit.sizedhatch64.chatgpt.site' && url.pathname === '/api/eventos') {
       const event = JSON.parse(request.postData());
+      if (event.network) {
+        assert.deepEqual(Object.keys(event), ['network']);
+        assert.match(event.network.id, UUID);
+        return route.fulfill({status:204,headers:{'Access-Control-Allow-Origin':base}});
+      }
       assert.equal(event.version, 2);
       assert.ok(Number.isInteger(event.durationMs) && event.durationMs >= 0);
       assert.ok(event.client.width > 0 && event.client.height > 0);
@@ -104,13 +108,6 @@ async function simpleForm(page) {
         'Access-Control-Allow-Headers':'Content-Type, X-Datta-Client'};
       if (request.method() === 'OPTIONS') {
         await route.fulfill({status:204, headers:cors});
-        return;
-      }
-      if (url.pathname === '/api/cuil' && request.method() === 'GET') {
-        assert.equal(url.search, '');
-        assert.equal(request.postData(), null);
-        assert.equal(request.headers()['x-datta-client'], undefined);
-        await route.fulfill({headers:cors, contentType:'application/json', body:JSON.stringify({cuilHabilitado:state.cuilHabilitado})});
         return;
       }
       assert.equal(request.method(), 'POST');
@@ -167,18 +164,22 @@ async function simpleForm(page) {
   console.log('OK navegador: prestador solicitado, móvil y limpieza del actual');
 
   await page.setViewportSize({width: 1280, height: 1000});
-  const statusReceived = page.waitForResponse(response => response.url() === cuilApi && response.request().method() === 'GET');
   await page.goto(base + '/otros-servicios/cuil/index.html');
-  await statusReceived;
   await simpleForm(page);
   const cuilInput = page.locator('#dqCuilValue');
   const cuilButton = page.locator('#dqCuilForm button[type=submit]');
-  assert.ok(await cuilInput.isDisabled());
-  assert.ok(await cuilButton.isDisabled());
-  await page.getByText('Consulta CUIL pendiente de habilitación', {exact:false}).first().waitFor();
-  const initialCount = requests.length;
-  await page.locator('#dqCuilForm').evaluate(form => form.requestSubmit());
-  assert.equal(requests.length, initialCount);
+  assert.ok(await cuilInput.isEditable());
+  assert.ok(await cuilButton.isEnabled());
+  assert.equal(await page.locator('#dqCuilResult').textContent(), '');
+  const cuitReply = state.cuil;
+  state.cuil = {status: 503, body: {error: 'cuil_no_habilitado'}};
+  await submit(page, '12345679', 'dqCuilForm');
+  await visibleResult(page, 'error', 'dqCuilResult');
+  assert.equal(requests.at(-1).payload.tipoClave, 'CUIL');
+  assert.match(await page.locator('#dqCuilResult').textContent(), /Padrón de CUIL no disponible/);
+  assert.ok(await cuilButton.isEnabled());
+  assert.ok(await cuilInput.isEditable());
+  state.cuil = cuitReply;
   assert.equal(await page.locator('#dqValue').getAttribute('aria-describedby'), 'dqDniHelp dqResult');
   assert.equal(await page.locator('#dqResult').getAttribute('role'), 'status');
   assert.equal(await page.locator('#dqResult').getAttribute('aria-live'), 'polite');
@@ -208,12 +209,6 @@ async function simpleForm(page) {
   assert.equal(await page.locator('#dqValue').getAttribute('aria-invalid'), 'false');
   assert.equal(await page.locator('#dqForm').getAttribute('aria-busy'), 'false');
   assert(requests.some(item => item.route === '/api/cuil' && item.payload.dni === '12345678' && item.payload.tipoClave === 'CUIT' && item.entrada === '12345678'));
-  state.cuilHabilitado = true;
-  await page.reload();
-  await page.waitForFunction(() => !document.getElementById('dqCuilValue').disabled);
-  assert.ok(await cuilButton.isEnabled());
-  await submit(page, '12345678');
-  await visibleResult(page, 'success');
   const cuitResult = await page.locator('#dqResult').textContent();
   await submit(page, 'a987', 'dqCuilForm');
   await visibleResult(page, 'error', 'dqCuilResult');
