@@ -40,22 +40,18 @@ async function visibleResult(page, type) {
 }
 async function submit(page, value) {
   await page.locator('#dqValue').fill(value);
-  await page.locator('#dqForm button[type=submit]:not(#dqCalculate)').click();
+  await page.locator('#dqForm button[type=submit]').click();
 }
 async function rows(page, selector = '#dqResult') {
   return page.locator(selector + ' .dq-field-row').evaluateAll(elements => elements.map(row => [row.querySelector('dt').textContent, row.querySelector('dd').textContent]));
 }
 async function simpleForm(page) {
   assert.equal(await page.locator('#dqForm input').count(), 1, 'Un único dato solicitado');
-  assert.equal(await page.locator('#dqForm button[type=submit]:not(#dqCalculate)').count(), 1);
-  assert.equal(await page.locator('#dqForm select, #dqPrefix').count(), 0);
-  assert.equal(await page.locator('input#dqDniFoto[type=file]').count(), 1);
-  assert.equal(await page.locator('#dqForm input[type=file]').count(), 0);
-  assert.equal(await page.locator('#dqForm #dqCalculate[type=submit]').count(), 1);
+  assert.equal(await page.locator('#dqForm button[type=submit]').count(), 1);
+  assert.equal(await page.locator('#dqForm button[type=submit]').textContent(), 'Consultar');
+  assert.equal(await page.locator('#dqForm select, #dqPrefix, #dqCalculate, input[type=file]').count(), 0);
   assert.equal(await page.locator('#dqForm iframe, #dqForm .dq-verification').count(), 0);
-  const destinations = await page.locator('aside a').evaluateAll(links => links.map(link => link.href));
-  assert.ok(destinations.includes('https://www.argentina.gob.ar/descarga-constancia-cuil'));
-  assert.ok(destinations.includes('https://publico.sssalud.gob.ar/padron'));
+  assert.equal(await page.locator('a[href*="anses"], a[href*="sssalud"], a[href*="constancia-cuil"]').count(), 0);
   assert.equal(await page.locator('script[src*="challenges.cloudflare.com"]').count(), 0);
 }
 (async () => {
@@ -84,7 +80,7 @@ async function simpleForm(page) {
       assert.ok(event.client.width > 0 && event.client.height > 0);
       if (event.service === 'cuil') {
         assert.deepEqual(Object.keys(event).sort(), ['action', 'client', 'durationMs', 'outcome', 'service', 'version']);
-        assert.doesNotMatch(request.postData(), /12345678|20123456786|dni-pdf417/);
+        assert.doesNotMatch(request.postData(), /12345678|20123456786/);
       }
       events.push(event);
       await route.fulfill({status:204,headers:{'Access-Control-Allow-Origin':base}});
@@ -161,9 +157,11 @@ async function simpleForm(page) {
   assert.equal(requests.length, before, 'Un DNI inválido no se envía a la API');
   await submit(page, '12345678');
   await visibleResult(page, 'success');
-  assert.deepEqual(await rows(page), [['CUIT: ', '20-12345678-6'], ['DNI: ', '12345678'], ['Fecha del padrón: ', '10/10/2026']]);
+  assert.deepEqual(Object.fromEntries(await rows(page)), {
+    'CUIT: ': '20-12345678-6', 'DNI: ': '12345678', 'Fecha del padrón: ': '10/10/2026', 'Fuente: ': 'ConsultaCUIT'
+  });
   assert.equal(await page.locator('#dqResult > strong').textContent(), 'CUIT confirmado');
-  assert.equal(await page.locator('#dqResult a[href="https://publico.sssalud.gob.ar/padron"]').count(), 1);
+  assert.equal(await page.locator('#dqResult a').count(), 0);
   await page.screenshot({path: path.join(output, 'cuil-desktop.png'), fullPage: true});
   await page.setViewportSize({width: 390, height: 844});
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'CUIL / CUIT no desborda en móvil');
@@ -194,24 +192,22 @@ async function simpleForm(page) {
   before = requests.length;
   await submit(page, '12345678');
   await page.waitForFunction(() => document.getElementById('dqForm').getAttribute('aria-busy') === 'true');
-  assert.equal(await page.locator('#dqForm button[type=submit]:not(#dqCalculate)').isDisabled(), true);
-  assert.equal(await page.locator('#dqForm button[type=submit]:not(#dqCalculate)').textContent(), 'Consultando…');
+  assert.equal(await page.locator('#dqForm button[type=submit]').isDisabled(), true);
+  assert.equal(await page.locator('#dqForm button[type=submit]').textContent(), 'Consultando…');
   await page.locator('#dqForm').evaluate(form => form.dispatchEvent(new Event('submit', {bubbles: true, cancelable: true})));
   assert.equal(requests.length, before + 1, 'El segundo envío no genera otra consulta');
   releaseCuil();
   await visibleResult(page, 'success');
-  assert.equal(await page.locator('#dqForm button[type=submit]:not(#dqCalculate)').isDisabled(), false);
+  assert.equal(await page.locator('#dqForm button[type=submit]').isDisabled(), false);
   assert.equal(await page.locator('#dqForm').getAttribute('aria-busy'), 'false');
   state.cuil = {status: 404, body: {error: 'clave_no_encontrada'}};
   await submit(page, '12345678');
   await page.waitForFunction(() => document.getElementById('dqResult').textContent.includes('Sin coincidencias en el padrón'));
   await visibleResult(page, 'info');
-  const calculated = [['Prefijo 20: ', '20-12345678-6'], ['Prefijo 23: ', '23-12345678-5'], ['Prefijo 24: ', '24-12345678-1'], ['Prefijo 27: ', '27-12345678-0']];
   assert.deepEqual(await rows(page), []);
-  const officialLinks = await page.locator('#dqResult a').evaluateAll(links => links.map(link => link.href).sort());
-  assert.deepEqual(officialLinks, ['https://publico.sssalud.gob.ar/padron', 'https://www.argentina.gob.ar/descarga-constancia-cuil']);
+  assert.equal(await page.locator('#dqResult a').count(), 0);
   assert.doesNotMatch(await page.locator('#dqResult').textContent(), /CUIL inexistente|CUIL no encontrado|CUIL confirmado|CUIT confirmado|20-12345678-6/);
-  assert.equal(await page.locator('#dqForm button[type=submit]:not(#dqCalculate)').isDisabled(), false);
+  assert.equal(await page.locator('#dqForm button[type=submit]').isDisabled(), false);
   state.cuil = {status: 409, body: {error: 'dni_ambiguo'}};
   await submit(page, '12345678');
   await page.waitForFunction(() => document.getElementById('dqResult').textContent.includes('más de una clave'));
@@ -238,51 +234,8 @@ async function simpleForm(page) {
   await page.waitForFunction(() => document.getElementById('dqResult').textContent.includes('Todavía no está habilitada'));
   assert.equal(requests.length, before, 'Sin configuración no se finge una consulta');
   await simpleForm(page);
-  const externalCount = externalRequests.length;
-  const currentUrl = page.url();
-  const loggedCalculation = page.waitForResponse(response => response.url().endsWith('/api/eventos') &&
-    response.request().postDataJSON()?.action === 'calculo');
-  await page.locator('#dqCalculate').click();
-  await loggedCalculation;
-  await visibleResult(page, 'info');
-  assert.deepEqual(await rows(page), calculated);
-  assert.equal(page.url(), currentUrl);
-  assert.match(await page.locator('#dqResult').textContent(), /orientativo/i);
-  assert.equal(requests.length, before, 'El cálculo no llama al proveedor');
-  assert.ok(events.some(event => event.service === 'cuil' && event.action === 'calculo' && event.outcome === 'ok'));
-  assert.equal(externalRequests.length, externalCount, 'No hay consultas externas para calcular');
-  // Un DNI sintético sin CUIT en el padrón debe poder leerse sin consultar ninguna API.
-  const photo = page.locator('#dqDniFoto');
-  const fixture = path.join(root, 'tests', 'fixtures', 'dni-pdf417.png');
-  const cardRequests = [];
-  const recordCardRequest = request => cardRequests.push(request);
-  page.on('request', recordCardRequest);
-  await page.locator('#dqValue').fill('');
-  await photo.setInputFiles(fixture);
-  await page.waitForFunction(() => document.getElementById('dqResult').textContent.includes('CUIL leído del DNI'));
-  assert.deepEqual(await rows(page), [['CUIL: ', '20-12345678-6'], ['DNI: ', '12345678']]);
-  await page.locator('#dqValue').fill('12345679');
-  await photo.setInputFiles(fixture);
-  await visibleResult(page, 'error');
-  assert.deepEqual(await rows(page), []);
-  assert.match(await page.locator('#dqResult').textContent(), /coincid/i);
-  assert.doesNotMatch(await page.locator('#dqResult').textContent(), /20-12345678-6/);
-  page.off('request', recordCardRequest);
-  for (const request of cardRequests) {
-    const url = new URL(request.url());
-    if (url.protocol === 'blob:' || url.protocol === 'data:') continue;
-    if (url.origin === base && request.method() === 'GET') {
-      assert.equal(url.search, '');
-      assert.match(url.pathname, /^\/otros-servicios\/cuil\/js\/.+\.m?js$/);
-      assert.doesNotMatch(url.href, /1234567[89]|dni-pdf417\.png/);
-    } else {
-      assert.equal(url.href, 'https://dattaquest-consultacuit.sizedhatch64.chatgpt.site/api/eventos');
-      assert.doesNotMatch(request.postData(), /1234567[89]|20123456786|dni-pdf417/);
-    }
-  }
-  assert.equal(requests.length, before, 'La lectura del documento funciona con la consulta remota desactivada');
   state.configured = true;
-  console.log('OK navegador: CUIL en DNI, consulta por padrón y cálculo por separado');
+  console.log('OK navegador: un botón de consulta, CUIL y CUIT verificados, ausencias y errores sin enlaces');
 
   // La prueba del formulario DNRPA vigente se ejecuta en test_dnrpa_browser.mjs.
   await page.goto(base + '/otros-servicios/imei/index.html');

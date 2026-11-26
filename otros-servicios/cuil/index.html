@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Consultá por DNI o leé el CUIL de tu tarjeta en tu dispositivo. Servicio gratuito DattaQuest Argentina.">
+<meta name="description" content="Consultá tu CUIL o CUIT por DNI. Servicio gratuito DattaQuest Argentina.">
 <meta name="theme-color" content="#0a0a0b">
 <link rel="icon" href="../../lupacel.png" type="image/png">
 <title>Consulta de CUIL / CUIT | DattaQuest Argentina</title>
@@ -91,7 +91,7 @@
 </section>
 <main class="dq-main" id="contenido">
  <nav class="dq-trail" aria-label="Ruta de navegación"><a href="../../index.html">Inicio</a><span>›</span><a href="../index.html">Otros servicios</a><span>›</span><span>Consulta de CUIL / CUIT</span></nav>
- <header class="dq-hero"><span class="dq-eyebrow">Servicio gratuito · Argentina</span><h1>Consulta de CUIL / CUIT</h1><p>Consultá por número de documento o leé el CUIL que figura en tu DNI tarjeta.</p></header>
+ <header class="dq-hero"><span class="dq-eyebrow">Servicio gratuito · Argentina</span><h1>Consulta de CUIL / CUIT</h1><p>Ingresá tu DNI para consultar la clave asociada.</p></header>
  <div class="dq-grid">
   <section class="dq-panel" aria-labelledby="tituloFormulario">
    <h2 id="tituloFormulario">Consulta de CUIL / CUIT</h2>
@@ -101,23 +101,12 @@
     <p class="dq-help" id="dqDniHelp">Ingresá tu DNI de 7 u 8 dígitos para buscar en el padrón disponible.</p>
     <div class="dq-actions">
      <button class="dq-btn" type="submit">Consultar</button>
-     <button class="dq-btn dq-btn-secondary" type="submit" id="dqCalculate">Solo calcular</button>
     </div>
    </form>
    <div id="dqResult" class="dq-result" role="status" aria-live="polite" aria-atomic="true"></div>
-   <div class="dq-cuil-tarjeta">
-    <label for="dqDniFoto" class="dq-field">Leer el CUIL de mi DNI tarjeta</label>
-    <p class="dq-help" id="dqFotoHelp">Elegí una foto nítida del código de barras rectangular (PDF417). Podés recortarla para mostrar solo el código. La foto se procesa en tu dispositivo.</p>
-    <input id="dqDniFoto" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="dqFotoHelp">
-   </div>
   </section>
   <aside class="dq-panel"><h3>Información del servicio</h3>
-   <ul class="dq-list">
-    <li>La búsqueda por número devuelve la clave registrada en la fuente consultada. El padrón fiscal puede informar únicamente el CUIT.</li>
-    <li>Si tu tarjeta incluye el CUIL en su código de barras, podés leerlo acá aunque no tengas CUIT.</li>
-    <li>También podés buscar por DNI en el <a href="https://publico.sssalud.gob.ar/padron" target="_blank" rel="noopener noreferrer">padrón de beneficiarios de SSSalud</a> u obtener la <a href="https://www.argentina.gob.ar/descarga-constancia-cuil" target="_blank" rel="noopener noreferrer">constancia oficial de ANSES</a>.</li>
-    <li>«Solo calcular» muestra combinaciones posibles. El cálculo no acredita cuál te asignaron.</li>
-   </ul>
+   <p>ConsultaCUIT busca tu CUIT en el padrón tributario. Si encuentra una coincidencia, vas a ver el número y la fecha del padrón disponible.</p>
   </aside>
  </div>
  <section aria-labelledby="otrosDisponibles"><h2 id="otrosDisponibles" style="color:#f5c85f;font-size:23px;margin-top:40px">Explorá otros servicios</h2><div class="dq-services"><a class="dq-service-link" href="../prestadores/index.html"><span>Buscador de prestadores</span><small>Servicio gratuito</small></a>
@@ -140,7 +129,6 @@
 <script src="../comun/api-config.js"></script>
 <script src="./js/config.js"></script>
 <script src="../comun/api-client.js"></script>
-<script src="./js/leer-dni.js?v=1"></script>
-<script src="./js/consulta.js?v=cuil-tarjeta-1"></script>
+<script src="./js/consulta.js?v=por-dni-2"></script>
 </body>
 </html>
