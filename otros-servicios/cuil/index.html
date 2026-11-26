@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Consultá tu CUIL o CUIT por DNI. Servicio gratuito DattaQuest Argentina.">
+<meta name="description" content="Consultá tu CUIT por DNI o calculá tu CUIL estimado con tu DNI y sexo. Servicio gratuito de DattaQuest Argentina.">
 <meta name="theme-color" content="#0a0a0b">
 <link rel="icon" href="../../lupacel.png" type="image/png">
 <title>Consulta de CUIL / CUIT | DattaQuest Argentina</title>
@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../../index_files/mbr-additional.css">
 <link rel="stylesheet" href="../comun/nav.css?v=2">
 <link rel="stylesheet" href="../comun/base.css?v=2">
-<link rel="stylesheet" href="./css/estilo.css?v=3">
+<link rel="stylesheet" href="./css/estilo.css?v=4">
 </head>
 <body class="dq-page">
 <script>var sonido=new Audio('../../click.mp3');</script>
@@ -91,7 +91,7 @@
 </section>
 <main class="dq-main" id="contenido">
  <nav class="dq-trail" aria-label="Ruta de navegación"><a href="../../index.html">Inicio</a><span>›</span><a href="../index.html">Otros servicios</a><span>›</span><span>Consulta de CUIL / CUIT</span></nav>
- <header class="dq-hero"><span class="dq-eyebrow">Servicio gratuito · Argentina</span><h1>Consulta de CUIL / CUIT</h1><p>Ingresá tu DNI para consultar la clave asociada.</p></header>
+ <header class="dq-hero"><span class="dq-eyebrow">Servicio gratuito · Argentina</span><h1>Consulta de CUIL / CUIT</h1><p>Consultá tu CUIT por DNI o calculá tu CUIL estimado.</p></header>
  <div class="dq-grid">
   <div class="dq-consultas">
   <section class="dq-panel" aria-labelledby="tituloFormulario">
@@ -111,10 +111,17 @@
    <form id="dqCuilForm" aria-busy="false" novalidate>
     <label for="dqCuilValue" class="dq-field">Número de DNI (propio)</label>
     <input class="dq-input" id="dqCuilValue" type="text" autocomplete="off" inputmode="numeric" placeholder="Ej.: 12345678" maxlength="10" aria-describedby="dqCuilHelp dqCuilResult" required>
-    <p class="dq-help" id="dqCuilHelp">Ingresá tu DNI de 7 u 8 dígitos para consultar tu CUIL registrado.</p>
-    <div class="dq-actions"><button class="dq-btn" type="submit">Consultar</button></div>
+    <p class="dq-help" id="dqCuilHelp">Ingresá de 5 a 8 dígitos. El cálculo usa el DNI y el sexo para estimar tu CUIL.</p>
+    <fieldset class="dq-cuil-sexo">
+     <legend class="dq-field">Sexo que figura en el DNI</legend>
+     <label><input type="radio" name="sexo" id="dqCuilM" value="M" checked> Masculino</label>
+     <label><input type="radio" name="sexo" id="dqCuilF" value="F"> Femenino</label>
+    </fieldset>
+    <div class="dq-actions"><button class="dq-btn" type="submit">Calcular CUIL</button></div>
    </form>
    <div id="dqCuilResult" class="dq-result" role="status" aria-live="polite" aria-atomic="true"></div>
+   <button id="dqCuilCopy" class="dq-btn dq-btn-secondary" type="button" hidden>Copiar CUIL</button>
+   <span id="dqCuilCopyStatus" role="status"></span>
   </section>
   </div>
   <aside class="dq-panel"><h3>Información del servicio</h3>
@@ -141,6 +148,6 @@
 <script src="../comun/api-config.js"></script>
 <script src="./js/config.js"></script>
 <script src="../comun/api-client.js?v=dos-consultas-1"></script>
-<script src="./js/consulta.js?v=dos-consultas-3"></script>
+<script src="./js/consulta.js?v=calculo-cuil-1"></script>
 </body>
 </html>

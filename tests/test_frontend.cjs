@@ -30,7 +30,10 @@ function runScript(context, relative) {
 function harness(module, overrides = {}) {
   const elements = {};
   const createdTags = [];
-  for (const id of ['dqForm', 'dqValue', 'dqResult', 'dqCurrent', 'dqRefresh', 'dqUpdated', 'dqQuotes', 'dqCuilForm', 'dqCuilValue', 'dqCuilResult']) elements[id] = new Element();
+  for (const id of ['dqForm', 'dqValue', 'dqResult', 'dqCurrent', 'dqRefresh', 'dqUpdated', 'dqQuotes', 'dqCuilForm', 'dqCuilValue', 'dqCuilResult', 'dqCuilM', 'dqCuilF', 'dqCuilCopy', 'dqCuilCopyStatus']) elements[id] = new Element();
+  elements.dqCuilValue.value = '';
+  elements.dqCuilM.checked = true;
+  elements.dqCuilF.checked = false;
   elements.dqForm.button = new Element('button');
   elements.dqCuilForm.button = new Element('button');
   const document = {getElementById: id => elements[id], createElement: tag => { createdTags.push(tag); return new Element(tag); }, head: new Element('head'), body: new Element('body')};
@@ -161,77 +164,46 @@ async function test(name, callback) { await callback(); passed++; console.log('O
     assert.equal(fields(h.elements.dqResult)[1][1], shortDni);
   });
 
-  await test('CUIL usa el segundo DNI, comprueba el tipo de clave y conserva el CUIT anterior', async () => {
-    const requests = [];
-    const invalidInputs = [];
-    const dniCuit = '12345678';
-    const dniCuil = '12345679';
-    const verifiedCuit = {verificado: true, tipoClave: 'CUIT', dni: dniCuit, cuit: syntheticCuil(dniCuit)};
-    let answer = verifiedCuit;
-    const h = harness('cuil', {
-      DattaRegistro: {begin: (route, action, started, input) => outcome => {
-        invalidInputs.push({route, action, input, outcome});
-      }},
-      DattaApi: {enabled: () => true, request: async (route, payload, metadata) => {
-        requests.push({route, payload: {...payload}, metadata: {...metadata}});
-        return answer;
-      }}
-    });
-    await h.submit('arriba!');
-    await h.submit('abajo?', 'CUIL');
-    assert.deepEqual(invalidInputs, ['arriba!', 'abajo?'].map(input => ({
-      route: 'cuil', action: 'invalida', input, outcome: 'invalida'
-    })));
-    assert.equal(requests.length, 0);
-    await h.submit(dniCuit);
-    const cuitResult = h.elements.dqResult.textContent;
-    answer = {verificado: true, tipoClave: 'CUIL', dni: dniCuil, cuil: syntheticCuil(dniCuil), fuente: 'ARCA A13'};
-    await h.submit('12.345.679', 'CUIL');
-    assert.equal(h.elements.dqCuilResult.children[0].textContent, 'CUIL confirmado');
-    assert.deepEqual(Object.fromEntries(fields(h.elements.dqCuilResult)), {
-      'CUIL: ': '20-' + dniCuil + '-' + answer.cuil.slice(-1), 'DNI: ': dniCuil, 'Fuente: ': 'ARCA A13'
-    });
-    assert.equal(h.elements.dqResult.textContent, cuitResult);
-    assert.deepEqual(requests, [
-      {route: 'cuil', payload: {dni: dniCuit, tipoClave: 'CUIT'}, metadata: {entrada: dniCuit}},
-      {route: 'cuil', payload: {dni: dniCuil, tipoClave: 'CUIL'}, metadata: {entrada: '12.345.679'}}
-    ]);
-    answer = {...verifiedCuit, dni: dniCuil, cuit: syntheticCuil(dniCuil)};
-    await h.submit(dniCuil, 'CUIL');
-    assert.equal(h.elements.dqCuilResult.dataset.type, 'error', 'Un CUIT no debe aparecer como resultado del formulario CUIL');
-    assert.deepEqual(fields(h.elements.dqCuilResult), []);
-    assert.equal(h.elements.dqResult.textContent, cuitResult);
-    h.context.DattaApi.request = async () => { throw Object.assign(Error(), {code: 'cuil_no_encontrado'}); };
-    await h.submit(dniCuil, 'CUIL');
-    assert.equal(h.elements.dqCuilResult.dataset.type, 'info');
-    assert.deepEqual(fields(h.elements.dqCuilResult), []);
+  await test('CUIL local calcula módulo 11, ambos casos de prefijo 23 y el dígito cero', async () => {
+    const h = harness('cuil');
+    for (const [dni, sex, expected] of [
+      ['12.345.678', 'M', '20-12345678-6'],
+      ['12345678', 'F', '27-12345678-0'],
+      ['12345676', 'M', '23-12345676-9'],
+      ['12345673', 'F', '23-12345673-4'],
+      ['1234567', 'F', '23-01234567-4'],
+      ['00000000', 'M', '20-00000000-1'],
+      ['00051', 'F', '27-00000051-0']
+    ]) {
+      h.elements.dqCuilM.checked = sex === 'M';
+      h.elements.dqCuilF.checked = sex === 'F';
+      await h.submit(dni, 'CUIL');
+      const result = h.elements.dqCuilResult;
+      assert.equal(result.children[0].textContent, 'CUIL estimado');
+      assert.equal(Object.fromEntries(fields(result))['CUIL: '], expected);
+      assert.doesNotMatch(result.textContent, /confirmado|ARCA A13/);
+    }
   });
 
-  await test('CUIL permite enviar y reintentar cuando el padrón no está disponible', async () => {
+  await test('el cálculo de CUIL solo usa el segundo formulario y conserva el resultado fiscal', async () => {
+    const dni = '12345678';
     const calls = [];
-    let code;
     const h = harness('cuil', {DattaApi: {
-      enabled: () => true, request: async (route, payload) => {
-        calls.push(payload.tipoClave);
-        throw Object.assign(Error(), {code});
+      enabled: () => true, request: async (route, payload, metadata) => {
+        calls.push({route, payload: {...payload}, metadata: {...metadata}});
+        return {verificado: true, tipoClave: 'CUIT', dni, cuit: syntheticCuil(dni)};
       }
     }});
-    assert.equal(h.elements.dqCuilResult.textContent, '');
-    for (const [error, expected] of [
-      ['cuil_no_habilitado', /Padrón de CUIL no disponible/],
-      ['servicio_no_disponible', /Consulta temporalmente no disponible/]
-    ]) {
-      code = error;
-      await h.submit('12345678', 'CUIL');
-      assert.match(h.elements.dqCuilResult.textContent, expected);
-      assert.equal(h.elements.dqCuilResult.dataset.type, 'error');
-      assert.equal(h.elements.dqCuilForm.button.disabled, false);
-      assert.equal(h.elements.dqCuilValue.readOnly, false);
-    }
-    code = 'clave_no_encontrada';
-    await h.submit('12345678');
-    assert.equal(h.elements.dqResult.dataset.type, 'info');
-    assert.deepEqual(calls, ['CUIL', 'CUIL', 'CUIT']);
+    await h.submit(dni);
+    const fiscal = h.elements.dqResult.textContent;
+    await h.submit('1234', 'CUIL');
+    assert.deepEqual(fields(h.elements.dqCuilResult), []);
+    await h.submit('12345679', 'CUIL');
+    assert.equal(Object.fromEntries(fields(h.elements.dqCuilResult))['CUIL: '], '20-12345679-4');
+    await h.submit('documento inválido', 'CUIL');
+    assert.deepEqual(fields(h.elements.dqCuilResult), []);
+    assert.equal(h.elements.dqResult.textContent, fiscal);
+    assert.deepEqual(calls, [{route:'cuil', payload:{dni, tipoClave:'CUIT'}, metadata:{entrada:dni}}]);
   });
 
   await test('no confirma claves calculadas, corporativas, ambiguas o de otro DNI', async () => {

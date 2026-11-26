@@ -52,7 +52,8 @@ async function simpleForm(page) {
   for (const [formId, type] of [['dqForm','CUIT'], ['dqCuilForm','CUIL']]) {
     const form = page.locator('#' + formId);
     assert.equal(await page.getByRole('heading', {name:'Consulta ' + type, exact:true}).count(), 1);
-    assert.equal(await form.locator('input').count(), 1, 'Se solicita un único dato por formulario');
+    assert.equal(await form.locator('input[type=text]').count(), 1);
+    assert.equal(await form.locator('input[type=radio]').count(), type === 'CUIL' ? 2 : 0);
     assert.equal(await form.locator('button[type=submit]').count(), 1);
   }
   assert.equal(await page.locator('nav a').filter({hasText:/^CUIL\/CUIT$/}).count(), 1);
@@ -91,10 +92,15 @@ async function simpleForm(page) {
       assert.ok(event.client.width > 0 && event.client.height > 0);
       if (event.service === 'cuil') {
         const keys = ['action', 'client', 'durationMs', 'outcome', 'service', 'version'];
-        if (event.outcome === 'invalida') {
+        if (event.outcome === 'invalida' || event.action === 'calculo') {
           keys.push('detail');
           assert.deepEqual(Object.keys(event.detail), ['entrada']);
-          assert.ok(['a12345678', '1234/5678', '00000000', 'a987'].includes(event.detail.entrada));
+          if (event.action === 'calculo') {
+            assert.equal(event.outcome, 'ok');
+            assert.equal(event.detail.entrada, '12.345.679');
+          } else {
+            assert.ok(['a12345678', '1234/5678', '00000000', 'a987'].includes(event.detail.entrada));
+          }
         }
         assert.deepEqual(Object.keys(event).sort(), keys.sort());
         assert.doesNotMatch(request.postData(), /20123456786|20123456794/);
@@ -171,15 +177,10 @@ async function simpleForm(page) {
   assert.ok(await cuilInput.isEditable());
   assert.ok(await cuilButton.isEnabled());
   assert.equal(await page.locator('#dqCuilResult').textContent(), '');
-  const cuitReply = state.cuil;
-  state.cuil = {status: 503, body: {error: 'cuil_no_habilitado'}};
-  await submit(page, '12345679', 'dqCuilForm');
-  await visibleResult(page, 'error', 'dqCuilResult');
-  assert.equal(requests.at(-1).payload.tipoClave, 'CUIL');
-  assert.match(await page.locator('#dqCuilResult').textContent(), /Padrón de CUIL no disponible/);
-  assert.ok(await cuilButton.isEnabled());
-  assert.ok(await cuilInput.isEditable());
-  state.cuil = cuitReply;
+  const male = page.locator('#dqCuilM');
+  const female = page.locator('#dqCuilF');
+  assert.equal(await male.isChecked(), true);
+  assert.equal(await female.isChecked(), false);
   assert.equal(await page.locator('#dqValue').getAttribute('aria-describedby'), 'dqDniHelp dqResult');
   assert.equal(await page.locator('#dqResult').getAttribute('role'), 'status');
   assert.equal(await page.locator('#dqResult').getAttribute('aria-live'), 'polite');
@@ -201,30 +202,48 @@ async function simpleForm(page) {
   });
   assert.equal(await page.locator('#dqResult > strong').textContent(), 'CUIT confirmado');
   assert.equal(await page.locator('#dqResult a').count(), 0);
+  assert.equal(await page.locator('#dqValue').getAttribute('aria-invalid'), 'false');
+  assert.equal(await page.locator('#dqForm').getAttribute('aria-busy'), 'false');
+  assert(requests.some(item => item.route === '/api/cuil' && item.payload.dni === '12345678' && item.payload.tipoClave === 'CUIT' && item.entrada === '12345678'));
+  const cuitResult = await page.locator('#dqResult').textContent();
+  before = requests.length;
+  const localEvents = () => events.filter(event => event.service === 'cuil' && event.action === 'calculo');
+  assert.equal(localEvents().length, 0);
+  await cuilInput.fill('12345679');
+  const localResult = page.locator('#dqCuilResult');
+  assert.equal(await localResult.locator('strong').textContent(), 'CUIL estimado');
+  assert.match(await localResult.textContent(), /20-12345679-4/);
+  await female.check();
+  assert.match(await localResult.textContent(), /27-12345679-9/);
+  await cuilInput.fill('12345673');
+  assert.match(await localResult.textContent(), /23-12345673-4/);
+  const copy = page.locator('#dqCuilCopy');
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'], {origin:base});
+  await copy.click();
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), '23-12345673-4');
+  await cuilInput.fill('');
+  assert.doesNotMatch(await localResult.textContent(), /23-12345673-4/);
+  assert.ok(await copy.isHidden() || await copy.isDisabled());
+  assert.equal(localEvents().length, 0, 'Editar DNI y sexo no registra consultas');
+  await submit(page, 'a987', 'dqCuilForm');
+  await visibleResult(page, 'error', 'dqCuilResult');
+  const audit = page.waitForResponse(response => {
+    const req = response.request();
+    return req.method() === 'POST' && new URL(req.url()).pathname === '/api/eventos' &&
+      req.postDataJSON()?.action === 'calculo';
+  });
+  await submit(page, '12.345.679', 'dqCuilForm');
+  await audit;
+  assert.equal(localEvents().length, 1);
+  assert.match(await localResult.textContent(), /27-12345679-9/);
+  assert.equal(requests.length, before, 'El cálculo de CUIL no consulta el padrón');
+  assert.equal(await page.locator('#dqResult').textContent(), cuitResult);
+
   await page.screenshot({path: path.join(output, 'cuil-desktop.png'), fullPage: true});
   await page.setViewportSize({width: 390, height: 844});
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'CUIL / CUIT no desborda en móvil');
   await page.screenshot({path: path.join(output, 'cuil-movil.png'), fullPage: true});
   await page.setViewportSize({width: 1280, height: 1000});
-  assert.equal(await page.locator('#dqValue').getAttribute('aria-invalid'), 'false');
-  assert.equal(await page.locator('#dqForm').getAttribute('aria-busy'), 'false');
-  assert(requests.some(item => item.route === '/api/cuil' && item.payload.dni === '12345678' && item.payload.tipoClave === 'CUIT' && item.entrada === '12345678'));
-  const cuitResult = await page.locator('#dqResult').textContent();
-  await submit(page, 'a987', 'dqCuilForm');
-  await visibleResult(page, 'error', 'dqCuilResult');
-  assert.equal(await page.locator('#dqResult').textContent(), cuitResult);
-  state.cuil.body = {verificado:true, tipoClave:'CUIL', dni:'12345679', cuil:'20123456794'};
-  await submit(page, '12.345.679', 'dqCuilForm');
-  await visibleResult(page, 'success', 'dqCuilResult');
-  assert.deepEqual(await rows(page,'#dqCuilResult'), [['CUIL: ', '20-12345679-4'], ['DNI: ', '12345679']]);
-  assert(requests.some(item => item.route === '/api/cuil' && item.payload.dni === '12345679' && item.payload.tipoClave === 'CUIL' && item.entrada === '12.345.679'));
-  assert.equal(await page.locator('#dqResult').textContent(), cuitResult);
-  state.cuil.body = {verificado:true, tipoClave:'CUIT', dni:'12345679', cuit:'20123456794'};
-  await submit(page, '12345679', 'dqCuilForm');
-  await visibleResult(page, 'error', 'dqCuilResult');
-  assert.deepEqual(await rows(page,'#dqCuilResult'), []);
-  assert.equal(await page.locator('#dqResult').textContent(), cuitResult);
-  assert.ok(events.some(event => event.service === 'cuil' && event.detail?.entrada === 'a987'));
 
   const validCuit = {verificado: true, tipoClave: 'CUIT', dni: '12345678', cuit: '20123456786'};
   for (const invalid of [
@@ -248,8 +267,9 @@ async function simpleForm(page) {
   assert.equal(await page.locator('#dqForm button[type=submit]').isDisabled(), true);
   assert.equal(await page.locator('#dqForm button[type=submit]').textContent(), 'Consultando…');
   await page.locator('#dqForm').evaluate(form => form.dispatchEvent(new Event('submit', {bubbles: true, cancelable: true})));
-  await page.locator('#dqCuilForm').evaluate(form => form.requestSubmit());
-  assert.equal(requests.length, before + 1, 'Ninguno de los formularios duplica una consulta en curso');
+  await cuilInput.fill('12345673');
+  assert.match(await localResult.textContent(), /23-12345673-4/);
+  assert.equal(requests.length, before + 1, 'El cálculo local sigue disponible durante la consulta CUIT');
   releaseCuil();
   await visibleResult(page, 'success');
   assert.equal(requests.length, before + 1);
@@ -290,6 +310,10 @@ async function simpleForm(page) {
   await page.waitForFunction(() => document.getElementById('dqResult').textContent.includes('Todavía no está habilitada'));
   assert.equal(requests.length, before, 'Sin configuración no se finge una consulta');
   await simpleForm(page);
+  await male.check();
+  await cuilInput.fill('12345676');
+  assert.match(await localResult.textContent(), /23-12345676-9/);
+  assert.equal(requests.length, before);
   state.configured = true;
   console.log('OK navegador: formularios de CUIT y CUIL independientes, ausencias y errores sin enlaces');
 
