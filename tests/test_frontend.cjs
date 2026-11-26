@@ -30,11 +30,11 @@ function runScript(context, relative) {
 function harness(module, overrides = {}) {
   const elements = {};
   const createdTags = [];
-  for (const id of ['dqForm', 'dqValue', 'dqResult', 'dqCurrent', 'dqRefresh', 'dqUpdated', 'dqQuotes', 'dqPrefix', 'dqCalculate']) elements[id] = new Element();
+  for (const id of ['dqForm', 'dqValue', 'dqResult', 'dqCurrent', 'dqRefresh', 'dqUpdated', 'dqQuotes', 'dqDniFoto', 'dqCalculate']) elements[id] = new Element();
   elements.dqForm.button = new Element('button');
   const document = {getElementById: id => elements[id], createElement: tag => { createdTags.push(tag); return new Element(tag); }, head: new Element('head'), body: new Element('body')};
   const storage = new Map();
-  const context = vm.createContext({console, setTimeout, clearTimeout, URL, AbortController, Promise,
+  const context = vm.createContext({console, setTimeout, clearTimeout, URL, AbortController, Promise, performance,
     document, location: {hostname: 'localhost'},
     localStorage: {getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value)},
     fetch: async () => { throw Error('Red no prevista por la prueba'); },
@@ -44,7 +44,6 @@ function harness(module, overrides = {}) {
   if (module) runScript(context, 'otros-servicios/' + module + '/js/consulta.js');
   return {context, elements, createdTags, async submit(value, options = {}) {
     elements.dqValue.value = value;
-    elements.dqPrefix.value = options.prefix || '';
     await elements.dqForm.events.submit({preventDefault() {}, submitter: options.local ? elements.dqCalculate : elements.dqForm.button});
   }};
 }
@@ -198,18 +197,17 @@ async function test(name, callback) { await callback(); passed++; console.log('O
   await test('CUIL cálculo orientativo sin consultas externas ni confirmación falsa', async () => {
     const dni = '12345678';
     const expected = [['Prefijo 20: ', '20-12345678-6'], ['Prefijo 23: ', '23-12345678-5'], ['Prefijo 24: ', '24-12345678-1'], ['Prefijo 27: ', '27-12345678-0']];
-    let calls = 0, events = 0, code;
-    const h = harness('cuil', {DattaRegistro: {event: () => events++}, DattaApi: {
+    let calls = 0, code;
+    const h = harness('cuil', {DattaApi: {
       enabled: () => true, request: async () => { calls++; throw Object.assign(Error(), {code}); }
     }});
     for (const missing of ['clave_no_encontrada', 'cuil_no_encontrado']) {
       code = missing;
       await h.submit(dni);
       assert.equal(h.elements.dqResult.dataset.type, 'info');
-      assert.deepEqual(fields(h.elements.dqResult), expected);
+      assert.deepEqual(fields(h.elements.dqResult), []);
       assert.match(h.elements.dqResult.textContent, /Sin coincidencias en el padrón/);
-      assert.match(h.elements.dqResult.textContent, /no confirman/);
-      assert.doesNotMatch(h.elements.dqResult.textContent, /CUIL confirmado|CUIT confirmado/);
+      assert.doesNotMatch(h.elements.dqResult.textContent, /CUIL confirmado|CUIT confirmado|20-12345678-6/);
       assert.equal(h.elements.dqForm.button.disabled, false);
       assert.equal(h.elements.dqCalculate.disabled, false);
       assert.equal(h.elements.dqForm.attributes['aria-busy'], 'false');
@@ -217,23 +215,22 @@ async function test(name, callback) { await callback(); passed++; console.log('O
     h.context.DattaApi.enabled = () => false;
     await h.submit(dni, {local: true});
     assert.deepEqual(fields(h.elements.dqResult), expected);
-    await h.submit(dni, {local: true, prefix: '27'});
-    assert.deepEqual(fields(h.elements.dqResult), [expected[3]]);
+    assert.match(h.elements.dqResult.textContent, /orientativo/i);
+    assert.doesNotMatch(h.elements.dqResult.textContent, /CUIL confirmado|CUIT confirmado/);
     await h.submit('00000000', {local: true});
     assert.equal(h.elements.dqResult.dataset.type, 'error');
-    for (const prefix of ['20', '23', '24', '27']) {
-      for (let i = 0; i < 25; i++) {
-        const sample = String(1000000 + i);
+    const weights = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2, 1];
+    for (let i = 0; i < 25; i++) {
+      const sample = String(1000000 + i);
+      const candidates = ['20', '23', '24', '27'].flatMap(prefix => {
         const first = prefix + sample.padStart(8, '0');
-        const weights = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2, 1];
-        const candidates = Array.from({length: 10}, (_, d) => first + d)
+        return Array.from({length: 10}, (_, d) => first + d)
           .filter(key => [...key].reduce((sum, digit, j) => sum + Number(digit) * weights[j], 0) % 11 === 0);
-        await h.submit(sample, {local: true, prefix});
-        assert.deepEqual(fields(h.elements.dqResult).map(row => row[1].replace(/-/g, '')), candidates);
-      }
+      });
+      await h.submit(sample, {local: true});
+      assert.deepEqual(fields(h.elements.dqResult).map(row => row[1].replace(/-/g, '')), candidates);
     }
     assert.equal(calls, 2, 'El cálculo local no consulta la API');
-    assert.equal(events, 0, 'El cálculo local no envía eventos');
   });
 
   await test('CUIL evita doble envío y anuncia validación y estado de carga', async () => {
@@ -424,12 +421,12 @@ async function test(name, callback) { await callback(); passed++; console.log('O
         assert.doesNotMatch(html, /href="https?:\/\/[^"]*(?:anses|dnrpa|constancia-cuil|radicacion-vehiculo)/i);
       } else {
         assert.doesNotMatch(form, /captcha|código verificador/i);
-        assert.equal((form.match(/<select\b/g) || []).length, 1);
-        assert.match(form, /<select[^>]*id="dqPrefix"/);
-        assert.deepEqual([...form.matchAll(/<option value="([^"]*)"/g)].map(m => m[1]), ['', '20', '23', '24', '27']);
+        assert.doesNotMatch(html, /dqPrefix|Prefijo \(opcional/);
+        assert.doesNotMatch(form, /<select\b|type="file"/i);
         assert.match(form, /<button[^>]*id="dqCalculate"/);
-        assert.deepEqual([...html.matchAll(/href="(https?:\/\/[^"]*(?:anses|dnrpa|constancia-cuil|radicacion-vehiculo)[^"]*)"/gi)].map(m => m[1]),
-          ['https://www.argentina.gob.ar/descarga-constancia-cuil']);
+        assert.match(html, /id="dqDniFoto"/);
+        assert.match(html, /href="https:\/\/publico\.sssalud\.gob\.ar\/padron"/);
+        assert.match(html, /href="https:\/\/www\.argentina\.gob\.ar\/descarga-constancia-cuil"/);
       }
       const h = harness(module);
       await h.submit(value);

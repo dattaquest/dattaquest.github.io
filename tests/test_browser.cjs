@@ -21,7 +21,7 @@ const server = http.createServer((req, res) => {
   try { filename = path.resolve(root, '.' + decodeURIComponent(new URL(req.url, 'http://localhost').pathname)); }
   catch (_) { res.writeHead(400).end(); return; }
   if (!filename.startsWith(root + path.sep)) { res.writeHead(403).end(); return; }
-  const types = {'.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.descarga': 'text/javascript',
+  const types = {'.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.mjs': 'text/javascript', '.descarga': 'text/javascript',
     '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg'};
   fs.readFile(filename, (error, data) => {
     if (error) { res.writeHead(404).end(); return; }
@@ -48,11 +48,14 @@ async function rows(page, selector = '#dqResult') {
 async function simpleForm(page) {
   assert.equal(await page.locator('#dqForm input').count(), 1, 'Un único dato solicitado');
   assert.equal(await page.locator('#dqForm button[type=submit]:not(#dqCalculate)').count(), 1);
-  assert.equal(await page.locator('#dqForm select').count(), 1);
-  assert.deepEqual(await page.locator('#dqPrefix option').evaluateAll(options => options.map(option => option.value)), ['', '20', '23', '24', '27']);
+  assert.equal(await page.locator('#dqForm select, #dqPrefix').count(), 0);
+  assert.equal(await page.locator('input#dqDniFoto[type=file]').count(), 1);
+  assert.equal(await page.locator('#dqForm input[type=file]').count(), 0);
   assert.equal(await page.locator('#dqForm #dqCalculate[type=submit]').count(), 1);
   assert.equal(await page.locator('#dqForm iframe, #dqForm .dq-verification').count(), 0);
-  assert.deepEqual(await page.locator('a[href*="anses"], a[href*="dnrpa"], a[href*="constancia-cuil"], a[href*="radicacion-vehiculo"]').evaluateAll(links => links.map(a => a.href)), ['https://www.argentina.gob.ar/descarga-constancia-cuil']);
+  const destinations = await page.locator('aside a').evaluateAll(links => links.map(link => link.href));
+  assert.ok(destinations.includes('https://www.argentina.gob.ar/descarga-constancia-cuil'));
+  assert.ok(destinations.includes('https://publico.sssalud.gob.ar/padron'));
   assert.equal(await page.locator('script[src*="challenges.cloudflare.com"]').count(), 0);
 }
 (async () => {
@@ -76,9 +79,14 @@ async function simpleForm(page) {
     }
     if (url.origin === 'https://dattaquest-consultacuit.sizedhatch64.chatgpt.site' && url.pathname === '/api/eventos') {
       const event = JSON.parse(request.postData());
-      assert.deepEqual(Object.keys(event).sort(), ['action', 'client', 'service']);
+      assert.equal(event.version, 2);
+      assert.ok(Number.isInteger(event.durationMs) && event.durationMs >= 0);
       assert.ok(event.client.width > 0 && event.client.height > 0);
-      events.push([event.service,event.action]);
+      if (event.service === 'cuil') {
+        assert.deepEqual(Object.keys(event).sort(), ['action', 'client', 'durationMs', 'outcome', 'service', 'version']);
+        assert.doesNotMatch(request.postData(), /12345678|20123456786|dni-pdf417/);
+      }
+      events.push(event);
       await route.fulfill({status:204,headers:{'Access-Control-Allow-Origin':base}});
       return;
     }
@@ -155,6 +163,7 @@ async function simpleForm(page) {
   await visibleResult(page, 'success');
   assert.deepEqual(await rows(page), [['CUIT: ', '20-12345678-6'], ['DNI: ', '12345678'], ['Fecha del padrón: ', '10/10/2026']]);
   assert.equal(await page.locator('#dqResult > strong').textContent(), 'CUIT confirmado');
+  assert.equal(await page.locator('#dqResult a[href="https://publico.sssalud.gob.ar/padron"]').count(), 1);
   await page.screenshot({path: path.join(output, 'cuil-desktop.png'), fullPage: true});
   await page.setViewportSize({width: 390, height: 844});
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'CUIL / CUIT no desborda en móvil');
@@ -198,10 +207,10 @@ async function simpleForm(page) {
   await page.waitForFunction(() => document.getElementById('dqResult').textContent.includes('Sin coincidencias en el padrón'));
   await visibleResult(page, 'info');
   const calculated = [['Prefijo 20: ', '20-12345678-6'], ['Prefijo 23: ', '23-12345678-5'], ['Prefijo 24: ', '24-12345678-1'], ['Prefijo 27: ', '27-12345678-0']];
-  assert.deepEqual(await rows(page), calculated);
-  assert.match(await page.locator('#dqResult').textContent(), /no confirman/);
-  assert.doesNotMatch(await page.locator('#dqResult').textContent(), /CUIL inexistente|CUIL no encontrado|CUIL confirmado|CUIT confirmado/);
-  assert.equal(await page.locator('#dqResult a').getAttribute('href'), 'https://www.argentina.gob.ar/descarga-constancia-cuil');
+  assert.deepEqual(await rows(page), []);
+  const officialLinks = await page.locator('#dqResult a').evaluateAll(links => links.map(link => link.href).sort());
+  assert.deepEqual(officialLinks, ['https://publico.sssalud.gob.ar/padron', 'https://www.argentina.gob.ar/descarga-constancia-cuil']);
+  assert.doesNotMatch(await page.locator('#dqResult').textContent(), /CUIL inexistente|CUIL no encontrado|CUIL confirmado|CUIT confirmado|20-12345678-6/);
   assert.equal(await page.locator('#dqForm button[type=submit]:not(#dqCalculate)').isDisabled(), false);
   state.cuil = {status: 409, body: {error: 'dni_ambiguo'}};
   await submit(page, '12345678');
@@ -229,21 +238,51 @@ async function simpleForm(page) {
   await page.waitForFunction(() => document.getElementById('dqResult').textContent.includes('Todavía no está habilitada'));
   assert.equal(requests.length, before, 'Sin configuración no se finge una consulta');
   await simpleForm(page);
-  const eventCount = events.length;
   const externalCount = externalRequests.length;
   const currentUrl = page.url();
+  const loggedCalculation = page.waitForResponse(response => response.url().endsWith('/api/eventos') &&
+    response.request().postDataJSON()?.action === 'calculo');
   await page.locator('#dqCalculate').click();
+  await loggedCalculation;
   await visibleResult(page, 'info');
   assert.deepEqual(await rows(page), calculated);
   assert.equal(page.url(), currentUrl);
-  await page.locator('#dqPrefix').selectOption('27');
-  await page.locator('#dqCalculate').click();
-  assert.deepEqual(await rows(page), [calculated[3]]);
+  assert.match(await page.locator('#dqResult').textContent(), /orientativo/i);
   assert.equal(requests.length, before, 'El cálculo no llama al proveedor');
-  assert.equal(events.length, eventCount, 'El cálculo local no envía eventos');
+  assert.ok(events.some(event => event.service === 'cuil' && event.action === 'calculo' && event.outcome === 'ok'));
   assert.equal(externalRequests.length, externalCount, 'No hay consultas externas para calcular');
+  // Un DNI sintético sin CUIT en el padrón debe poder leerse sin consultar ninguna API.
+  const photo = page.locator('#dqDniFoto');
+  const fixture = path.join(root, 'tests', 'fixtures', 'dni-pdf417.png');
+  const cardRequests = [];
+  const recordCardRequest = request => cardRequests.push(request);
+  page.on('request', recordCardRequest);
+  await page.locator('#dqValue').fill('');
+  await photo.setInputFiles(fixture);
+  await page.waitForFunction(() => document.getElementById('dqResult').textContent.includes('CUIL leído del DNI'));
+  assert.deepEqual(await rows(page), [['CUIL: ', '20-12345678-6'], ['DNI: ', '12345678']]);
+  await page.locator('#dqValue').fill('12345679');
+  await photo.setInputFiles(fixture);
+  await visibleResult(page, 'error');
+  assert.deepEqual(await rows(page), []);
+  assert.match(await page.locator('#dqResult').textContent(), /coincid/i);
+  assert.doesNotMatch(await page.locator('#dqResult').textContent(), /20-12345678-6/);
+  page.off('request', recordCardRequest);
+  for (const request of cardRequests) {
+    const url = new URL(request.url());
+    if (url.protocol === 'blob:' || url.protocol === 'data:') continue;
+    if (url.origin === base && request.method() === 'GET') {
+      assert.equal(url.search, '');
+      assert.match(url.pathname, /^\/otros-servicios\/cuil\/js\/.+\.m?js$/);
+      assert.doesNotMatch(url.href, /1234567[89]|dni-pdf417\.png/);
+    } else {
+      assert.equal(url.href, 'https://dattaquest-consultacuit.sizedhatch64.chatgpt.site/api/eventos');
+      assert.doesNotMatch(request.postData(), /1234567[89]|20123456786|dni-pdf417/);
+    }
+  }
+  assert.equal(requests.length, before, 'La lectura del documento funciona con la consulta remota desactivada');
   state.configured = true;
-  console.log('OK navegador: CUIL y CUIT verificados, estados accesibles, cobertura parcial y errores sin enlaces');
+  console.log('OK navegador: CUIL en DNI, consulta por padrón y cálculo por separado');
 
   // La prueba del formulario DNRPA vigente se ejecuta en test_dnrpa_browser.mjs.
   await page.goto(base + '/otros-servicios/imei/index.html');
@@ -264,7 +303,7 @@ async function simpleForm(page) {
   assert.deepEqual((await rows(page, '#dqQuotes')).map(row => row[0]), ['Compra: ', 'Venta: ', 'Actualizado: ']);
   console.log('OK navegador: prefijos y dólar en filas');
   for (const [service,action] of [['prestadores','consulta'],['cuil','invalida'],['imei','consulta'],['prefijos','consulta'],['dolar','apertura']]) {
-    assert.ok(events.some(e => e[0] === service && e[1] === action), service);
+    assert.ok(events.some(event => event.service === service && event.action === action), service);
   }
   assert.deepEqual(pageErrors, [], 'Sin excepciones JavaScript en las páginas');
   assert.equal(externalRequests.some(url => /challenges\.cloudflare\.com|recaptcha|hcaptcha/i.test(url)), false, 'No se solicita ningún servicio CAPTCHA');
