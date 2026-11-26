@@ -19,7 +19,7 @@
     const quotes = items.filter(item => item && Object.hasOwn(names, item.casa));
     if (!quotes.length) {
       DattaUtil.result('dqResult', 'Sin cotizaciones', 'No se recibieron cotizaciones para mostrar.', 'error');
-      return;
+      return [];
     }
     document.getElementById('dqResult').classList.remove('is-visible');
     quotes.forEach(quote => {
@@ -38,16 +38,19 @@
       card.appendChild(DattaUtil.fieldList(rows));
       grid.appendChild(card);
     });
+    return quotes.map(q => ({tipo:q.casa, compra:Number.isFinite(q.compra)?q.compra:null, venta:Number.isFinite(q.venta)?q.venta:null}));
   }
   async function load(force) {
-    window.DattaRegistro?.event('dolar', force ? 'actualizacion' : 'apertura');
+    const finish = window.DattaRegistro?.begin('dolar', force ? 'actualizacion' : 'apertura') || (() => {});
+    let providerHttp;
     button.disabled = true;
     updated.textContent = 'Consultando...';
     if (!force) {
       try {
         const cached = JSON.parse(localStorage.getItem(key));
         if (cached && Array.isArray(cached.data) && Date.now() - cached.saved < ttl) {
-          render(cached.data);
+          const cotizaciones = render(cached.data);
+          finish(cotizaciones.length ? 'cache' : 'error', {cotizaciones});
           updated.textContent = 'Últimas cotizaciones guardadas.';
           button.disabled = false;
           return;
@@ -58,23 +61,27 @@
     const timeout = setTimeout(() => controller.abort(), 12000);
     try {
       const response = await fetch(api, {signal: controller.signal, cache: 'no-store'});
+      providerHttp = response.status;
       if (!response.ok) throw Error('HTTP_' + response.status);
       const data = await response.json();
       if (!Array.isArray(data)) throw Error('RESPUESTA_INVALIDA');
-      render(data);
+      const cotizaciones = render(data);
+      finish(cotizaciones.length ? 'ok' : 'error', {cotizaciones}, providerHttp);
       try { localStorage.setItem(key, JSON.stringify({saved: Date.now(), data})); } catch (ignore) {}
       updated.textContent = 'Cotizaciones actualizadas.';
     } catch (error) {
       let cached;
       try { cached = JSON.parse(localStorage.getItem(key)); } catch (ignore) {}
       if (cached && Array.isArray(cached.data)) {
-        render(cached.data);
+        const cotizaciones = render(cached.data);
+        finish(cotizaciones.length ? 'fallback' : 'error', {cotizaciones}, providerHttp);
         updated.textContent = 'Sin conexión: se muestran cotizaciones anteriores.';
       } else {
         DattaUtil.result('dqResult', 'Cotizaciones no disponibles', 'No se pudieron cargar los valores. Intentá nuevamente.', 'error');
         updated.textContent = 'No se pudo actualizar.';
       }
     } finally {
+      finish('error', undefined, providerHttp);
       clearTimeout(timeout);
       button.disabled = false;
     }
