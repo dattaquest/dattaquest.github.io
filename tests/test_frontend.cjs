@@ -30,7 +30,7 @@ function runScript(context, relative) {
 function harness(module, overrides = {}) {
   const elements = {};
   const createdTags = [];
-  for (const id of ['dqForm', 'dqValue', 'dqResult', 'dqCurrent', 'dqRefresh', 'dqUpdated', 'dqQuotes', 'dqDniFoto', 'dqCalculate']) elements[id] = new Element();
+  for (const id of ['dqForm', 'dqValue', 'dqResult', 'dqCurrent', 'dqRefresh', 'dqUpdated', 'dqQuotes']) elements[id] = new Element();
   elements.dqForm.button = new Element('button');
   const document = {getElementById: id => elements[id], createElement: tag => { createdTags.push(tag); return new Element(tag); }, head: new Element('head'), body: new Element('body')};
   const storage = new Map();
@@ -42,9 +42,9 @@ function harness(module, overrides = {}) {
   context.window = context;
   runScript(context, 'otros-servicios/comun/base.js');
   if (module) runScript(context, 'otros-servicios/' + module + '/js/consulta.js');
-  return {context, elements, createdTags, async submit(value, options = {}) {
+  return {context, elements, createdTags, async submit(value) {
     elements.dqValue.value = value;
-    await elements.dqForm.events.submit({preventDefault() {}, submitter: options.local ? elements.dqCalculate : elements.dqForm.button});
+    await elements.dqForm.events.submit({preventDefault() {}, submitter: elements.dqForm.button});
   }};
 }
 function fields(element) {
@@ -134,10 +134,12 @@ async function test(name, callback) { await callback(); passed++; console.log('O
       await h.submit(dni);
       assert.equal(h.elements.dqResult.dataset.type, 'success');
       assert.equal(h.elements.dqResult.children[0].textContent, 'CUIT confirmado');
-      assert.deepEqual(fields(h.elements.dqResult), [
-        ['CUIT: ', typePrefix + '-' + dni + '-' + cuit.slice(10)], ['DNI: ', dni], ['Fecha del padrón: ', '10/10/2026']
-      ]);
-      assert.doesNotMatch(h.elements.dqResult.textContent, /NO MOSTRAR|CUIL confirmado|ConsultaCUIT|situacion_fiscal/);
+      assert.deepEqual(Object.fromEntries(fields(h.elements.dqResult)), {
+        'CUIT: ': typePrefix + '-' + dni + '-' + cuit.slice(10), 'DNI: ': dni,
+        'Fecha del padrón: ': '10/10/2026', 'Fuente: ': 'ConsultaCUIT'
+      });
+      assert.equal(h.elements.dqResult.children.some(element => element.tagName === 'A'), false);
+      assert.doesNotMatch(h.elements.dqResult.textContent, /NO MOSTRAR|CUIL confirmado|situacion_fiscal/);
     }
     answer = {verificado: true, tipoClave: 'CUIL', dni, cuil: '20-12345678-6'};
     await h.submit(dni);
@@ -194,9 +196,8 @@ async function test(name, callback) { await callback(); passed++; console.log('O
     }
   });
 
-  await test('CUIL cálculo orientativo sin consultas externas ni confirmación falsa', async () => {
+  await test('Una consulta sin coincidencias no ofrece claves calculadas ni enlaces externos', async () => {
     const dni = '12345678';
-    const expected = [['Prefijo 20: ', '20-12345678-6'], ['Prefijo 23: ', '23-12345678-5'], ['Prefijo 24: ', '24-12345678-1'], ['Prefijo 27: ', '27-12345678-0']];
     let calls = 0, code;
     const h = harness('cuil', {DattaApi: {
       enabled: () => true, request: async () => { calls++; throw Object.assign(Error(), {code}); }
@@ -209,28 +210,10 @@ async function test(name, callback) { await callback(); passed++; console.log('O
       assert.match(h.elements.dqResult.textContent, /Sin coincidencias en el padrón/);
       assert.doesNotMatch(h.elements.dqResult.textContent, /CUIL confirmado|CUIT confirmado|20-12345678-6/);
       assert.equal(h.elements.dqForm.button.disabled, false);
-      assert.equal(h.elements.dqCalculate.disabled, false);
+      assert.equal(h.elements.dqResult.children.some(element => element.tagName === 'A'), false);
       assert.equal(h.elements.dqForm.attributes['aria-busy'], 'false');
     }
-    h.context.DattaApi.enabled = () => false;
-    await h.submit(dni, {local: true});
-    assert.deepEqual(fields(h.elements.dqResult), expected);
-    assert.match(h.elements.dqResult.textContent, /orientativo/i);
-    assert.doesNotMatch(h.elements.dqResult.textContent, /CUIL confirmado|CUIT confirmado/);
-    await h.submit('00000000', {local: true});
-    assert.equal(h.elements.dqResult.dataset.type, 'error');
-    const weights = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2, 1];
-    for (let i = 0; i < 25; i++) {
-      const sample = String(1000000 + i);
-      const candidates = ['20', '23', '24', '27'].flatMap(prefix => {
-        const first = prefix + sample.padStart(8, '0');
-        return Array.from({length: 10}, (_, d) => first + d)
-          .filter(key => [...key].reduce((sum, digit, j) => sum + Number(digit) * weights[j], 0) % 11 === 0);
-      });
-      await h.submit(sample, {local: true});
-      assert.deepEqual(fields(h.elements.dqResult).map(row => row[1].replace(/-/g, '')), candidates);
-    }
-    assert.equal(calls, 2, 'El cálculo local no consulta la API');
+    assert.equal(calls, 2);
   });
 
   await test('CUIL evita doble envío y anuncia validación y estado de carga', async () => {
@@ -413,7 +396,7 @@ async function test(name, callback) { await callback(); passed++; console.log('O
       const html = fs.readFileSync(path.join(root, 'otros-servicios', module, 'index.html'), 'utf8');
       const form = html.match(/<form\b[^>]*id="dqForm"[\s\S]*?<\/form>/)[0];
       assert.equal((form.match(/<input\b/g) || []).length, module === 'radicacion' ? 2 : 1);
-      assert.equal((form.match(/<button\b[^>]*type="submit"/g) || []).length, module === 'cuil' ? 2 : 1);
+      assert.equal((form.match(/<button\b[^>]*type="submit"/g) || []).length, 1);
       assert.doesNotMatch(form, /sexo/i);
       if (module === 'radicacion') {
         assert.match(form, /id="dqVerifier"/);
@@ -421,12 +404,10 @@ async function test(name, callback) { await callback(); passed++; console.log('O
         assert.doesNotMatch(html, /href="https?:\/\/[^"]*(?:anses|dnrpa|constancia-cuil|radicacion-vehiculo)/i);
       } else {
         assert.doesNotMatch(form, /captcha|código verificador/i);
-        assert.doesNotMatch(html, /dqPrefix|Prefijo \(opcional/);
-        assert.doesNotMatch(form, /<select\b|type="file"/i);
-        assert.match(form, /<button[^>]*id="dqCalculate"/);
-        assert.match(html, /id="dqDniFoto"/);
-        assert.match(html, /href="https:\/\/publico\.sssalud\.gob\.ar\/padron"/);
-        assert.match(html, /href="https:\/\/www\.argentina\.gob\.ar\/descarga-constancia-cuil"/);
+        assert.doesNotMatch(html, /dqPrefix|dqCalculate|dqDniFoto|type="file"|leer-dni\.js/i);
+        assert.doesNotMatch(form, /<select\b/i);
+        assert.match(form, /<button\b[^>]*>\s*Consultar\s*<\/button>/);
+        assert.doesNotMatch(html, /href="[^"]*(?:sssalud|anses|constancia-cuil)/i);
       }
       const h = harness(module);
       await h.submit(value);

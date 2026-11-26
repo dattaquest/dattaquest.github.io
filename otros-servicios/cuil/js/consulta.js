@@ -3,12 +3,8 @@
   const form = document.getElementById('dqForm');
   const inputElement = document.getElementById('dqValue');
   const button = form.querySelector('button[type=submit]');
-  const calculateButton = document.getElementById('dqCalculate');
-  const photoInput = document.getElementById('dqDniFoto');
   const unavailable = ['Consulta temporalmente no disponible', 'Todavía no está habilitada la consulta de CUIL / CUIT.'];
-  const sssalud = 'https://publico.sssalud.gob.ar/padron';
-  const anses = 'https://www.argentina.gob.ar/descarga-constancia-cuil';
-  const notFound = ['Sin coincidencias en el padrón', 'Este padrón no informó una clave para ese DNI. Podés leer el CUIL de tu tarjeta abajo u obtener la constancia de ANSES.'];
+  const notFound = ['Sin coincidencias en el padrón', 'La fuente consultada no informó una clave para ese DNI.'];
   let busy = false;
   const errors = {
     proteccion_sin_configurar: unavailable,
@@ -34,16 +30,6 @@
     return digit === 10 ? null : digit;
   }
 
-  function candidateKeys(dni) {
-    const prefixes = ['20', '23', '24', '27'];
-    if (!/^\d{7,8}$/.test(dni) || /^0+$/.test(dni)) return [];
-    return prefixes.flatMap(p => {
-      const firstTen = p + dni.padStart(8, '0');
-      const digit = verificationDigit(firstTen);
-      return digit === null ? [] : [firstTen + digit];
-    });
-  }
-
   function check(cuil) {
     const digit = verificationDigit(cuil.slice(0, 10));
     return digit !== null && digit === Number(cuil[10]);
@@ -51,17 +37,6 @@
 
   function formatKey(key) {
     return key.slice(0, 2) + '-' + key.slice(2, 10) + '-' + key.slice(10);
-  }
-
-  function showCalculated(dni) {
-    const title = 'Cálculo orientativo de CUIL / CUIT';
-    const rows = candidateKeys(dni).map(key => ['Prefijo ' + key.slice(0, 2), formatKey(key)]);
-    DattaUtil.fields('dqResult', title, rows, 'info');
-    const note = document.createElement('p');
-    note.className = 'dq-help';
-    note.textContent = 'Estas combinaciones no confirman qué número te asignaron.';
-    document.getElementById('dqResult').appendChild(note);
-    DattaUtil.action('dqResult', 'Verificar con ANSES', anses);
   }
 
   function padronDate(value) {
@@ -79,8 +54,6 @@
   function setBusy(value) {
     busy = value;
     button.disabled = value;
-    calculateButton.disabled = value;
-    photoInput.disabled = value;
     inputElement.readOnly = value;
     form.setAttribute('aria-busy', String(value));
   }
@@ -90,35 +63,10 @@
     DattaUtil.result('dqResult', 'DNI no válido', 'Ingresá un DNI de 7 u 8 dígitos.', 'error');
   }
 
-  photoInput.addEventListener('change', async () => {
-    const file = photoInput.files[0];
-    if (!file || busy) return;
-    photoInput.value = '';
-    const dni = normalizedInput();
-    if (inputElement.value.trim() && (!/^\d{7,8}$/.test(dni) || /^0+$/.test(dni))) {
-      showInvalidDni();
-      return;
-    }
-    inputElement.setAttribute('aria-invalid', 'false');
-    setBusy(true);
-    DattaUtil.result('dqResult', 'Leyendo el código de barras…', '', 'info');
-    try {
-      const result = await DattaDni.leerArchivo(file, dni);
-      DattaUtil.fields('dqResult', 'CUIL leído del DNI', [
-        ['CUIL', formatKey(result.cuil)], ['DNI', result.dni]
-      ], 'success');
-    } catch (error) {
-      DattaUtil.result('dqResult', 'No se pudo leer el CUIL', error.message, 'error');
-    } finally {
-      setBusy(false);
-    }
-  });
-
   form.addEventListener('submit', async event => {
     event.preventDefault();
     if (busy) return;
     const started = performance.now();
-    const calculationOnly = !!calculateButton && event.submitter === calculateButton;
     const dni = normalizedInput();
     if (!/^\d{7,8}$/.test(dni) || /^0+$/.test(dni)) {
       window.DattaRegistro?.begin?.('cuil','invalida',started)?.('invalida');
@@ -126,12 +74,6 @@
       return;
     }
     inputElement.setAttribute('aria-invalid', 'false');
-    if (calculationOnly) {
-      const finish = window.DattaRegistro?.begin?.("cuil","calculo",started);
-      showCalculated(dni);
-      finish?.("ok");
-      return;
-    }
     if (!DattaApi.enabled('cuil')) {
       DattaUtil.result('dqResult', unavailable[0], unavailable[1], 'info');
       return;
@@ -155,21 +97,13 @@
         [type, formatKey(key)],
         ['DNI', dni]
       ];
+      if (type === 'CUIT' && data.fuente === 'ConsultaCUIT') rows.push(['Fuente', 'ConsultaCUIT']);
       const date = padronDate(data.fechaPadron);
       if (date) rows.push(['Fecha del padrón', date]);
       DattaUtil.fields('dqResult', type + ' confirmado', rows, 'success');
-      if (type === 'CUIT') {
-        const note = document.createElement('p');
-        note.className = 'dq-help';
-        note.textContent = 'La fuente informó tu CUIT. Para ver el CUIL de tu tarjeta, usá el lector de abajo.';
-        document.getElementById('dqResult').appendChild(note);
-        DattaUtil.action('dqResult', 'Buscar mi CUIL en SSSalud', sssalud);
-      }
     } catch (error) {
       if (['clave_no_encontrada', 'cuil_no_encontrado'].includes(error && error.code)) {
         DattaUtil.result('dqResult', notFound[0], notFound[1], 'info');
-        DattaUtil.action('dqResult', 'Buscar mi CUIL en SSSalud', sssalud);
-        DattaUtil.action('dqResult', 'Obtener mi constancia de CUIL', anses);
         return;
       }
       const message = errors[error && error.code] || ['No se pudo verificar la clave', 'La consulta no pudo completarse. Intentá nuevamente más tarde.'];
