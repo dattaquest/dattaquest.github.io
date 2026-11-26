@@ -185,7 +185,7 @@ async function test(name, callback) { await callback(); passed++; console.log('O
     }
   });
 
-  await test('el cálculo de CUIL solo usa el segundo formulario y conserva el resultado fiscal', async () => {
+  await test('el cálculo de CUIL conserva el resultado del formulario de CUIT', async () => {
     const dni = '12345678';
     const calls = [];
     const h = harness('cuil', {DattaApi: {
