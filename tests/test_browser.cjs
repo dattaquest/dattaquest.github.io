@@ -40,16 +40,19 @@ async function visibleResult(page, type) {
 }
 async function submit(page, value) {
   await page.locator('#dqValue').fill(value);
-  await page.locator('#dqForm button[type=submit]').click();
+  await page.locator('#dqForm button[type=submit]:not(#dqCalculate)').click();
 }
 async function rows(page, selector = '#dqResult') {
   return page.locator(selector + ' .dq-field-row').evaluateAll(elements => elements.map(row => [row.querySelector('dt').textContent, row.querySelector('dd').textContent]));
 }
 async function simpleForm(page) {
   assert.equal(await page.locator('#dqForm input').count(), 1, 'Un único dato solicitado');
-  assert.equal(await page.locator('#dqForm button[type=submit]').count(), 1);
-  assert.equal(await page.locator('#dqForm select, #dqForm iframe, #dqForm .dq-verification').count(), 0);
-  assert.equal(await page.locator('a[href*="anses"], a[href*="dnrpa"], a[href*="constancia-cuil"], a[href*="radicacion-vehiculo"]').count(), 0);
+  assert.equal(await page.locator('#dqForm button[type=submit]:not(#dqCalculate)').count(), 1);
+  assert.equal(await page.locator('#dqForm select').count(), 1);
+  assert.deepEqual(await page.locator('#dqPrefix option').evaluateAll(options => options.map(option => option.value)), ['', '20', '23', '24', '27']);
+  assert.equal(await page.locator('#dqForm #dqCalculate[type=submit]').count(), 1);
+  assert.equal(await page.locator('#dqForm iframe, #dqForm .dq-verification').count(), 0);
+  assert.deepEqual(await page.locator('a[href*="anses"], a[href*="dnrpa"], a[href*="constancia-cuil"], a[href*="radicacion-vehiculo"]').evaluateAll(links => links.map(a => a.href)), ['https://www.argentina.gob.ar/descarga-constancia-cuil']);
   assert.equal(await page.locator('script[src*="challenges.cloudflare.com"]').count(), 0);
 }
 (async () => {
@@ -182,19 +185,24 @@ async function simpleForm(page) {
   before = requests.length;
   await submit(page, '12345678');
   await page.waitForFunction(() => document.getElementById('dqForm').getAttribute('aria-busy') === 'true');
-  assert.equal(await page.locator('#dqForm button[type=submit]').isDisabled(), true);
-  assert.equal(await page.locator('#dqForm button[type=submit]').textContent(), 'Consultando…');
+  assert.equal(await page.locator('#dqForm button[type=submit]:not(#dqCalculate)').isDisabled(), true);
+  assert.equal(await page.locator('#dqForm button[type=submit]:not(#dqCalculate)').textContent(), 'Consultando…');
   await page.locator('#dqForm').evaluate(form => form.dispatchEvent(new Event('submit', {bubbles: true, cancelable: true})));
   assert.equal(requests.length, before + 1, 'El segundo envío no genera otra consulta');
   releaseCuil();
   await visibleResult(page, 'success');
-  assert.equal(await page.locator('#dqForm button[type=submit]').isDisabled(), false);
+  assert.equal(await page.locator('#dqForm button[type=submit]:not(#dqCalculate)').isDisabled(), false);
   assert.equal(await page.locator('#dqForm').getAttribute('aria-busy'), 'false');
   state.cuil = {status: 404, body: {error: 'clave_no_encontrada'}};
   await submit(page, '12345678');
-  await page.waitForFunction(() => document.getElementById('dqResult').textContent.includes('Sin datos en esta fuente'));
-  assert.doesNotMatch(await page.locator('#dqResult').textContent(), /CUIL inexistente|CUIL no encontrado/);
-  assert.equal(await page.locator('#dqForm button[type=submit]').isDisabled(), false);
+  await page.waitForFunction(() => document.getElementById('dqResult').textContent.includes('Sin coincidencias en el padrón'));
+  await visibleResult(page, 'info');
+  const calculated = [['Prefijo 20: ', '20-12345678-6'], ['Prefijo 23: ', '23-12345678-5'], ['Prefijo 24: ', '24-12345678-1'], ['Prefijo 27: ', '27-12345678-0']];
+  assert.deepEqual(await rows(page), calculated);
+  assert.match(await page.locator('#dqResult').textContent(), /no confirman/);
+  assert.doesNotMatch(await page.locator('#dqResult').textContent(), /CUIL inexistente|CUIL no encontrado|CUIL confirmado|CUIT confirmado/);
+  assert.equal(await page.locator('#dqResult a').getAttribute('href'), 'https://www.argentina.gob.ar/descarga-constancia-cuil');
+  assert.equal(await page.locator('#dqForm button[type=submit]:not(#dqCalculate)').isDisabled(), false);
   state.cuil = {status: 409, body: {error: 'dni_ambiguo'}};
   await submit(page, '12345678');
   await page.waitForFunction(() => document.getElementById('dqResult').textContent.includes('más de una clave'));
@@ -221,6 +229,19 @@ async function simpleForm(page) {
   await page.waitForFunction(() => document.getElementById('dqResult').textContent.includes('Todavía no está habilitada'));
   assert.equal(requests.length, before, 'Sin configuración no se finge una consulta');
   await simpleForm(page);
+  const eventCount = events.length;
+  const externalCount = externalRequests.length;
+  const currentUrl = page.url();
+  await page.locator('#dqCalculate').click();
+  await visibleResult(page, 'info');
+  assert.deepEqual(await rows(page), calculated);
+  assert.equal(page.url(), currentUrl);
+  await page.locator('#dqPrefix').selectOption('27');
+  await page.locator('#dqCalculate').click();
+  assert.deepEqual(await rows(page), [calculated[3]]);
+  assert.equal(requests.length, before, 'El cálculo no llama al proveedor');
+  assert.equal(events.length, eventCount, 'El cálculo local no envía eventos');
+  assert.equal(externalRequests.length, externalCount, 'No hay consultas externas para calcular');
   state.configured = true;
   console.log('OK navegador: CUIL y CUIT verificados, estados accesibles, cobertura parcial y errores sin enlaces');
 
