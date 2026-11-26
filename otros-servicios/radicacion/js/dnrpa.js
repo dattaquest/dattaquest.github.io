@@ -42,7 +42,7 @@ refresh.addEventListener('click',()=>load());
 form.addEventListener('submit',async e=>{
  e.preventDefault();if(busy)return;
  const value=plate.value.trim().toUpperCase().replace(/[ .-]/g,'');
- if(!validPlate.test(value)){window.DattaRegistro?.event('radicacion','invalida');plate.setAttribute('aria-invalid','true');showError(fail('dato_invalido'));return;}
+ if(!validPlate.test(value)){window.DattaRegistro?.begin?.('radicacion','invalida')?.('invalida');plate.setAttribute('aria-invalid','true');showError(fail('dato_invalido'));return;}
  plate.setAttribute('aria-invalid','false');
  const manual=code.value.trim();
  if(!/^\d{5}$/.test(manual)){window.DattaRegistro?.event('radicacion','invalida');code.setAttribute('aria-invalid','true');DattaUtil.result('dqResult','Código verificador incompleto','Ingresá los cinco dígitos que ves en la imagen.','error');return;}
