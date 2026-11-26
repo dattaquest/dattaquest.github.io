@@ -33,15 +33,15 @@
   function event(service, action) {
     send({service, action, client:client()});
   }
-  // Disabled until the existing collector has been migrated and verified.
+  // Keep the legacy format available for rollback.
   // The legacy event format stays unchanged while the feature is disabled.
-  function begin(service, action) {
-    if (window.DATTA_LOGS_V2 !== true || !['prefijos','dolar'].includes(service)) {
+  function begin(service, action, startedAt) {
+    if (window.DATTA_LOGS_V2 === false || !['prefijos','dolar','imei','prestadores','cuil'].includes(service)) {
       event(service, action);
       return () => {};
     }
     const now = () => window.performance?.now?.() ?? Date.now();
-    const started = now();
+    const started = startedAt ?? now();
     let completed = false;
     return (outcome, detail, providerHttp) => {
       if (completed) return;

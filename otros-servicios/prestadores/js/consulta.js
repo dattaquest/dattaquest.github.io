@@ -47,16 +47,18 @@
   }
   form.addEventListener('submit', async event => {
     event.preventDefault();
+    const started = performance.now();
     const current = document.getElementById('dqCurrent');
     current.textContent = '';
     current.classList.remove('is-visible');
     const numero = DattaUtil.normalizePhone(document.getElementById('dqValue').value);
     if (!/^\d{10}$/.test(numero)) {
-      window.DattaRegistro?.event('prestadores','invalida');
+      window.DattaRegistro?.begin('prestadores','invalida',started)?.('invalida');
       DattaUtil.result('dqResult', 'Número inválido', 'Ingresá 10 dígitos nacionales, sin el 0 ni el 15.', 'error');
       return;
     }
-    window.DattaRegistro?.event('prestadores','consulta');
+    const finish = window.DattaRegistro?.begin('prestadores','consulta',started) || (() => {});
+    const detail = {ultimos:numero.slice(-2)};
     const button = form.querySelector('button[type=submit]');
     button.disabled = true;
     DattaUtil.result('dqResult', 'Consultando numeración', 'Buscando el prestador original...', 'info');
@@ -81,6 +83,7 @@
         DattaUtil.result('dqResult', 'Consulta no disponible', 'No se pudieron cargar las asignaciones. Intentá nuevamente.', 'error');
       }
       await queryCurrent(numero);
-    } finally { button.disabled = false; }
+      finish(match ? "ok" : data ? "sin_coincidencias" : "error", {...detail, marca:match ? knownBrand(match[1]) : ""});
+    } finally { finish("error",detail); button.disabled = false; }
   });
 })();

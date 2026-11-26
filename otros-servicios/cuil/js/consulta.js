@@ -75,19 +75,22 @@
   form.addEventListener('submit', async event => {
     event.preventDefault();
     if (busy) return;
+    const started = performance.now();
     const calculationOnly = !!calculateButton && event.submitter === calculateButton;
     const prefix = prefixElement?.value || '';
     const input = inputElement.value.trim();
     const dni = /^[0-9 .]+$/.test(input) ? input.replace(/[ .]/g, '') : '';
     if (!/^\d{7,8}$/.test(dni) || /^0+$/.test(dni)) {
-      if (!calculationOnly) window.DattaRegistro?.event('cuil','invalida');
+      window.DattaRegistro?.begin?.('cuil','invalida',started)?.('invalida');
       inputElement.setAttribute('aria-invalid', 'true');
       DattaUtil.result('dqResult', 'DNI no válido', 'Ingresá un DNI de 7 u 8 dígitos.', 'error');
       return;
     }
     inputElement.setAttribute('aria-invalid', 'false');
     if (calculationOnly) {
+      const finish = window.DattaRegistro?.begin?.("cuil","calculo",started);
       showCalculated(dni, prefix, false);
+      finish?.("ok", {prefijo:prefix});
       return;
     }
     if (!DattaApi.enabled('cuil')) {

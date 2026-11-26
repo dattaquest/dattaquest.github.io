@@ -32,9 +32,10 @@
 
   form.addEventListener('submit', async event => {
     event.preventDefault();
+    const started = performance.now();
     const imei = DattaUtil.onlyDigits(document.getElementById('dqValue').value);
     if (!/^\d{15}$/.test(imei)) {
-      window.DattaRegistro?.event('imei','invalida');
+      window.DattaRegistro?.begin('imei','invalida',started)?.('invalida');
       DattaUtil.result(resultId, 'IMEI no válido', 'El IMEI debe contener exactamente 15 dígitos.', 'error');
       return;
     }
@@ -48,11 +49,12 @@
       sum += digit;
     }
     if (sum % 10 !== 0) {
-      window.DattaRegistro?.event('imei','invalida');
+      window.DattaRegistro?.begin('imei','invalida',started)?.('invalida');
       DattaUtil.result(resultId, 'Error de control', 'El IMEI no supera la verificación de su dígito de control.', 'error');
       return;
     }
-    window.DattaRegistro?.event('imei','consulta');
+    const finish = window.DattaRegistro?.begin('imei','consulta',started) || (() => {});
+    const detail = {ultimos:imei.slice(-2)};
     const button = form.querySelector('button[type=submit]');
     button.disabled = true;
     DattaUtil.result(resultId, 'Consultando IMEI', 'Buscando marca y modelo...', 'info');
@@ -69,8 +71,9 @@
         } catch (ignore) {}
       }
       displayResult(imei, device, blockStatus);
+      finish(device?.unavailable ? "error" : device?.brand ? "ok" : "sin_coincidencias", {...detail, bloqueo:blockStatus});
     } catch (error) {
       DattaUtil.result(resultId, 'Formato IMEI válido', 'No se pudo consultar el modelo. Intentá nuevamente.', 'info');
-    } finally { button.disabled = false; }
+    } finally { finish("error",detail); button.disabled = false; }
   });
 })();
