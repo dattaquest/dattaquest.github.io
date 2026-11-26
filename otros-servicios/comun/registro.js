@@ -30,17 +30,30 @@
         headers:{'Content-Type':'text/plain;charset=UTF-8'}, body:JSON.stringify(payload)}).catch(() => {});
     } catch {}
   }
+function formatoInvalido(value) {
+  if (typeof value !== 'string') return undefined;
+  const sample = value.slice(0, 96);
+  const hideLetters = (sample.match(/\p{L}/gu) || []).length > 3 || value.length > 96;
+  const hideDigits = (sample.match(/\p{N}/gu) || []).length > 2 || value.length > 96;
+  return Array.from(sample, ch => {
+    if (/\p{L}/u.test(ch)) return hideLetters ? '•' : ch;
+    if (/\p{N}/u.test(ch)) return hideDigits ? '•' : ch;
+    return /^[\p{P}\p{S} \t]$/u.test(ch) ? ch : '•';
+  }).join('');
+}
   function event(service, action) {
     send({service, action, client:client()});
   }
   // Keep the legacy format available for rollback.
   // The legacy event format stays unchanged while the feature is disabled.
   function begin(service, action, startedAt) {
-    if (window.DATTA_LOGS_V2 === false || !['prefijos','dolar','imei','prestadores','cuil'].includes(service)) {
+    if (window.DATTA_LOGS_V2 === false || !['prefijos','dolar','imei','prestadores','cuil','radicacion'].includes(service)) {
       event(service, action);
       return () => {};
     }
     const now = () => window.performance?.now?.() ?? Date.now();
+    const input = ['imei','prestadores','cuil','prefijos','radicacion'].includes(service) ? document.getElementById?.('dqValue')?.value : undefined;
+    const invalidSample = formatoInvalido(input);
     const started = startedAt ?? now();
     let completed = false;
     return (outcome, detail, providerHttp) => {
@@ -52,6 +65,7 @@
       // Only callers producing public catalog data may pass detail.
       // Never read a form, query string, cookies or user identifiers here.
       if (detail && typeof detail === 'object') payload.detail = detail;
+      if (status === 'invalida' && invalidSample !== undefined) payload.detail = {...payload.detail, entrada:invalidSample};
       if (service === 'dolar' && Number.isInteger(providerHttp) && providerHttp >= 100 && providerHttp <= 599) {
         payload.providerHttp = providerHttp;
       }
