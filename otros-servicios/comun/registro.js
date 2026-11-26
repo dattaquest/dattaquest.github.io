@@ -15,9 +15,9 @@
     return {...hints, width:window.screen?.width, height:window.screen?.height,
       tablet:navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1};
   }
-  function headers(endpoint) {
+  function headers(endpoint, entrada = document.getElementById?.('dqValue')?.value) {
     try {
-      if (new URL(endpoint).origin === origin) return {'X-Datta-Client':encodeURIComponent(JSON.stringify({...client(), entrada:document.getElementById?.('dqValue')?.value}))};
+      if (new URL(endpoint).origin === origin) return {'X-Datta-Client':encodeURIComponent(JSON.stringify({...client(), entrada}))};
     } catch {}
     return {};
   }
@@ -36,13 +36,13 @@
   }
   // Keep the legacy format available for rollback.
   // The legacy event format stays unchanged while the feature is disabled.
-  function begin(service, action, startedAt) {
+  function begin(service, action, startedAt, entrada) {
     if (window.DATTA_LOGS_V2 === false || !['prefijos','dolar','imei','prestadores','cuil','radicacion'].includes(service)) {
       event(service, action);
       return () => {};
     }
     const now = () => window.performance?.now?.() ?? Date.now();
-    const input = ['imei','prestadores','cuil','prefijos','radicacion'].includes(service) ? document.getElementById?.('dqValue')?.value : undefined;
+    const input = entrada !== undefined ? entrada : ['imei','prestadores','cuil','prefijos','radicacion'].includes(service) ? document.getElementById?.('dqValue')?.value : undefined;
     const started = startedAt ?? now();
     let completed = false;
     return (outcome, detail, providerHttp) => {

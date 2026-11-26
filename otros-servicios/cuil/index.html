@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../../index_files/mbr-additional.css">
 <link rel="stylesheet" href="../comun/nav.css?v=2">
 <link rel="stylesheet" href="../comun/base.css?v=2">
-<link rel="stylesheet" href="./css/estilo.css?v=2">
+<link rel="stylesheet" href="./css/estilo.css?v=3">
 </head>
 <body class="dq-page">
 <script>var sonido=new Audio('../../click.mp3');</script>
@@ -68,7 +68,7 @@
 <hr class="dq-menu-separator"/>
 <a class="nav-link link text-primary display-4" href="../../otros-servicios/prefijos/index.html" onmousedown="sonido.play()">Prefijos</a>
 <hr class="dq-menu-separator"/>
-<a class="nav-link link text-primary display-4" href="../../otros-servicios/cuil/index.html" onmousedown="sonido.play()">CUIL</a>
+<a class="nav-link link text-primary display-4" href="../../otros-servicios/cuil/index.html" onmousedown="sonido.play()">CUIL/CUIT</a>
 <hr class="dq-menu-separator"/>
 <a class="nav-link link text-primary display-4" href="../../otros-servicios/radicacion/index.html" onmousedown="sonido.play()">Radicación de patente</a>
 <hr class="dq-menu-separator"/>
@@ -93,8 +93,9 @@
  <nav class="dq-trail" aria-label="Ruta de navegación"><a href="../../index.html">Inicio</a><span>›</span><a href="../index.html">Otros servicios</a><span>›</span><span>Consulta de CUIL / CUIT</span></nav>
  <header class="dq-hero"><span class="dq-eyebrow">Servicio gratuito · Argentina</span><h1>Consulta de CUIL / CUIT</h1><p>Ingresá tu DNI para consultar la clave asociada.</p></header>
  <div class="dq-grid">
+  <div class="dq-consultas">
   <section class="dq-panel" aria-labelledby="tituloFormulario">
-   <h2 id="tituloFormulario">Consulta de CUIL / CUIT</h2>
+   <h2 id="tituloFormulario">Consulta CUIT</h2>
    <form id="dqForm" aria-busy="false" novalidate>
     <label for="dqValue" class="dq-field">Número de DNI (propio)</label>
     <input class="dq-input" id="dqValue" type="text" autocomplete="off" inputmode="numeric" placeholder="Ej.: 12345678" maxlength="10" aria-describedby="dqDniHelp dqResult" required>
@@ -105,6 +106,17 @@
    </form>
    <div id="dqResult" class="dq-result" role="status" aria-live="polite" aria-atomic="true"></div>
   </section>
+  <section class="dq-panel" aria-labelledby="tituloCuil">
+   <h2 id="tituloCuil">Consulta CUIL</h2>
+   <form id="dqCuilForm" aria-busy="false" novalidate>
+    <label for="dqCuilValue" class="dq-field">Número de DNI (propio)</label>
+    <input class="dq-input" id="dqCuilValue" type="text" autocomplete="off" inputmode="numeric" placeholder="Ej.: 12345678" maxlength="10" aria-describedby="dqCuilHelp dqCuilResult" required disabled>
+    <p class="dq-help" id="dqCuilHelp">Ingresá tu DNI de 7 u 8 dígitos para consultar tu CUIL registrado.</p>
+    <div class="dq-actions"><button class="dq-btn" type="submit" disabled>Consultar</button></div>
+   </form>
+   <div id="dqCuilResult" class="dq-result is-visible" role="status" aria-live="polite" aria-atomic="true" data-type="info"><strong>Comprobando disponibilidad de CUIL…</strong></div>
+  </section>
+  </div>
   <aside class="dq-panel"><h3>Información del servicio</h3>
    <p>ConsultaCUIT busca tu CUIT en el padrón tributario. Si encuentra una coincidencia, vas a ver el número y la fecha del padrón disponible.</p>
   </aside>
@@ -112,7 +124,7 @@
  <section aria-labelledby="otrosDisponibles"><h2 id="otrosDisponibles" style="color:#f5c85f;font-size:23px;margin-top:40px">Explorá otros servicios</h2><div class="dq-services"><a class="dq-service-link" href="../prestadores/index.html"><span>Buscador de prestadores</span><small>Servicio gratuito</small></a>
 <a class="dq-service-link" href="../prefijos/index.html"><span>Prefijos telefónicos</span><small>Servicio gratuito</small></a>
 <a class="dq-service-link" href="../dolar/index.html"><span>Cotización del dólar</span><small>Servicio gratuito</small></a>
-<a class="dq-service-link" href="../cuil/index.html" aria-current="page"><span>Consulta de CUIL</span><small>Estás acá</small></a>
+<a class="dq-service-link" href="../cuil/index.html" aria-current="page"><span>Consulta de CUIL/CUIT</span><small>Estás acá</small></a>
 <a class="dq-service-link" href="../radicacion/index.html"><span>Radicación de patente</span><small>Servicio gratuito</small></a>
 <a class="dq-service-link" href="../imei/index.html"><span>Verificador de IMEI</span><small>Servicio gratuito</small></a></div></section>
  <p class="dq-source">Registramos el uso de este servicio para estadísticas y seguridad. <a href="../../Acerca.html#registro-consultas">Datos del registro</a></p>
@@ -124,11 +136,11 @@
 <script src="../../index_files/nav-dropdown.js.descarga"></script>
 <script src="../../index_files/navbar-dropdown.js.descarga"></script>
 <script defer src="../comun/nav.js?v=2"></script>
-<script src="../comun/registro.js?v=2"></script>
+<script src="../comun/registro.js?v=dos-consultas-1"></script>
 <script src="../comun/base.js"></script>
 <script src="../comun/api-config.js"></script>
 <script src="./js/config.js"></script>
-<script src="../comun/api-client.js"></script>
-<script src="./js/consulta.js?v=por-dni-3"></script>
+<script src="../comun/api-client.js?v=dos-consultas-1"></script>
+<script src="./js/consulta.js?v=dos-consultas-1"></script>
 </body>
 </html>

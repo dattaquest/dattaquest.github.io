@@ -34,7 +34,7 @@ test('preflight, orígenes ajenos y método incorrecto no consultan documentos',
     assert.equal(response.status, 403);
     assert.equal(response.headers.get('Access-Control-Allow-Origin'), null);
   }
-  assert.equal((await service(new Request('https://conector.example/api/cuil', {headers: {Origin: origin}}))).status, 405);
+  assert.deepEqual(await (await service(new Request('https://conector.example/api/cuil', {headers: {Origin: origin}}))).json(), {cuilHabilitado: false});
 });
 
 test('JSON y DNI inválidos se rechazan antes de llegar a ConsultaCUIT', async () => {
@@ -60,7 +60,7 @@ test('sin datos, ambigüedad y fallo de proveedor conservan estados diferentes',
 
 test('el limitador no consulta tras exceder la ventana y se recupera en la siguiente', async () => {
   let time = 1_000; let calls = 0;
-  const service = createConsultaCuitService({now: () => time, lookup: async () => { calls++; return {verificado: true}; }});
+  const service = createConsultaCuitService({now: () => time, lookup: async () => { calls++; return {verificado: true, tipoClave: 'CUIT'}; }});
   for (let i = 0; i < 8; i++) assert.equal((await service(request())).status, 200);
   assert.equal((await service(request())).status, 429);
   assert.equal(calls, 8);

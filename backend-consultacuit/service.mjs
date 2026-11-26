@@ -1,4 +1,5 @@
 /* Conector de sólo consulta. No guarda documentos, claves ni respuestas del padrón. */
+import { consultarCuilAfipSdk } from '../backend-cloudflare/proveedores/afipsdk-cuil.mjs';
 import { consultarCuitConsultaCuit } from '../backend-cloudflare/proveedores/consultacuit-cuil.mjs';
 import { consultarRadicacionArgentina, comprobarRadicacionArgentina } from '../backend-cloudflare/proveedores/argentina-radicacion.mjs';
 
@@ -37,7 +38,8 @@ async function readInput(request, kind = 'cuil') {
   }
   if (kind === 'cuil') {
     if (typeof body.dni !== 'string' || !/^\d{7,8}$/.test(body.dni) || /^0+$/.test(body.dni)) throw error('dato_invalido', 400);
-    return body.dni;
+    if (body.tipoClave !== undefined && !['CUIT', 'CUIL'].includes(body.tipoClave)) throw error('dato_invalido', 400);
+    return {dni: body.dni, tipoClave: body.tipoClave};
   }
   if (typeof body.patente !== 'string' || !/^(?:[A-Z]{3}\d{3}|[A-Z]{2}\d{3}[A-Z]{2}|\d{3}[A-Z]{3}|[A-Z]\d{3}[A-Z]{3})$/.test(body.patente)) {
     throw error('dato_invalido', 400);
@@ -47,7 +49,7 @@ async function readInput(request, kind = 'cuil') {
 
 // Límite preventivo por instancia: no es autenticación ni un cupo global duradero.
 // Las claves son hashes efímeros de la IP del borde; nunca contienen el DNI.
-function makeLimiter(now) {
+export function makeLimiter(now) {
   const visitors = new Map(); let window = -1; let count = 0;
   return async request => {
     const current = Math.floor(now() / 60_000);
@@ -66,9 +68,27 @@ function makeLimiter(now) {
 }
 
 export function createConsultaCuitService({fetchImpl = (...args) => fetch(...args), now = Date.now,
-  lookup = consultarCuitConsultaCuit, radicacionLookup = consultarRadicacionArgentina,
+  lookup = consultarCuitConsultaCuit, cuilLookup = consultarCuilAfipSdk, getCuilCredentials = () => null, radicacionLookup = consultarRadicacionArgentina,
   radicacionHealth = comprobarRadicacionArgentina} = {}) {
   const reserve = makeLimiter(now);
+  async function lookupPersonalKey({dni, tipoClave}, signal) {
+    const params = {dni, fetchImpl, signal};
+    if (tipoClave !== 'CUIL') {
+      try {
+        const answer = await lookup(params);
+        if (answer?.tipoClave !== 'CUIT') throw error('respuesta_no_verificada', 502);
+        return answer;
+      } catch (failure) {
+        if (tipoClave === 'CUIT' || failure?.code !== 'clave_no_encontrada') throw failure;
+      }
+    }
+    const auth = getCuilCredentials();
+    if (!auth) throw tipoClave === 'CUIL' ? error('cuil_no_habilitado') : error('clave_no_encontrada', 404);
+    const answer = await cuilLookup({...params, ...auth,
+      signal: AbortSignal.any([signal, AbortSignal.timeout(10000)])});
+    if (answer?.tipoClave !== 'CUIL') throw error('respuesta_no_verificada', 502);
+    return {...answer, fuente: 'ARCA A13'};
+  }
   return async function handle(request) {
     const path = new URL(request.url).pathname;
     const origin = request.headers.get('Origin') || '';
@@ -107,15 +127,20 @@ export function createConsultaCuitService({fetchImpl = (...args) => fetch(...arg
       }
     }
     if (path !== '/api/cuil' && path !== '/api/radicacion') return json(404, {error: 'no_disponible'}, cors);
+    if (path === '/api/cuil' && request.method === 'GET') {
+      return json(200, {cuilHabilitado: Boolean(getCuilCredentials())}, cors);
+    }
     if (origin !== ORIGIN) return json(403, {error: 'origen_no_permitido'}, cors);
     if (request.method === 'OPTIONS') return new Response(null, {status: 204, headers: cors});
-    if (request.method !== 'POST') return json(405, {error: 'metodo_no_permitido'}, cors, {Allow: 'POST, OPTIONS'});
+    if (request.method !== 'POST') return json(405, {error: 'metodo_no_permitido'}, cors, {
+      Allow: path === '/api/cuil' ? 'GET, POST, OPTIONS' : 'POST, OPTIONS',
+    });
     try {
       const kind = path === '/api/cuil' ? 'cuil' : 'radicacion';
       const value = await readInput(request, kind);
       if (!await reserve(request)) throw error('limite_consultas', 429);
       const data = kind === 'cuil'
-        ? await lookup({dni: value, fetchImpl, signal: request.signal})
+        ? await lookupPersonalKey(value, request.signal)
         : await radicacionLookup({patente: value, fetchImpl, signal: request.signal});
       // La adaptación es la única encargada de validar y reducir los datos del proveedor.
       return json(200, kind === 'radicacion' ? {...data, consultadoEn: new Date(now()).toISOString()} : data, cors);
