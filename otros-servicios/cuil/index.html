@@ -94,22 +94,10 @@
  <header class="dq-hero"><span class="dq-eyebrow">Servicio gratuito · Argentina</span><h1>Consulta de CUIL / CUIT</h1><p>Consultá tu CUIT por DNI o calculá tu CUIL estimado.</p></header>
  <div class="dq-grid">
   <div class="dq-consultas">
-  <section class="dq-panel" aria-labelledby="tituloFormulario">
-   <h2 id="tituloFormulario">Consulta CUIT</h2>
-   <form id="dqForm" aria-busy="false" novalidate>
-    <label for="dqValue" class="dq-field">Número de DNI (propio)</label>
-    <input class="dq-input" id="dqValue" type="text" autocomplete="off" inputmode="numeric" placeholder="Ej.: 12345678" maxlength="10" aria-describedby="dqDniHelp dqResult" required>
-    <p class="dq-help" id="dqDniHelp">Ingresá tu DNI de 7 u 8 dígitos para buscar en el padrón disponible.</p>
-    <div class="dq-actions">
-     <button class="dq-btn" type="submit">Consultar</button>
-    </div>
-   </form>
-   <div id="dqResult" class="dq-result" role="status" aria-live="polite" aria-atomic="true"></div>
-  </section>
   <section class="dq-panel" aria-labelledby="tituloCuil">
    <h2 id="tituloCuil">Consulta CUIL</h2>
    <form id="dqCuilForm" aria-busy="false" novalidate>
-    <label for="dqCuilValue" class="dq-field">Número de DNI (propio)</label>
+    <label for="dqCuilValue" class="dq-field">Número de DNI</label>
     <input class="dq-input" id="dqCuilValue" type="text" autocomplete="off" inputmode="numeric" placeholder="Ej.: 12345678" maxlength="10" aria-describedby="dqCuilHelp dqCuilResult" required>
     <p class="dq-help" id="dqCuilHelp">Ingresá de 5 a 8 dígitos. El cálculo usa el DNI y el sexo para estimar tu CUIL.</p>
     <fieldset class="dq-cuil-sexo">
@@ -122,6 +110,18 @@
    <div id="dqCuilResult" class="dq-result" role="status" aria-live="polite" aria-atomic="true"></div>
    <button id="dqCuilCopy" class="dq-btn dq-btn-secondary" type="button" hidden>Copiar CUIL</button>
    <span id="dqCuilCopyStatus" role="status"></span>
+  </section>
+  <section class="dq-panel" aria-labelledby="tituloFormulario">
+   <h2 id="tituloFormulario">Consulta CUIT</h2>
+   <form id="dqForm" aria-busy="false" novalidate>
+    <label for="dqValue" class="dq-field">Número de DNI</label>
+    <input class="dq-input" id="dqValue" type="text" autocomplete="off" inputmode="numeric" placeholder="Ej.: 12345678" maxlength="10" aria-describedby="dqDniHelp dqResult" required>
+    <p class="dq-help" id="dqDniHelp">Ingresá tu DNI de 7 u 8 dígitos para buscar en el padrón disponible.</p>
+    <div class="dq-actions">
+     <button class="dq-btn" type="submit">Consultar</button>
+    </div>
+   </form>
+   <div id="dqResult" class="dq-result" role="status" aria-live="polite" aria-atomic="true"></div>
   </section>
   </div>
   <aside class="dq-panel"><h3>Información del servicio</h3>

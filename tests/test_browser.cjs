@@ -48,11 +48,12 @@ async function rows(page, selector = '#dqResult') {
   return page.locator(selector + ' .dq-field-row').evaluateAll(elements => elements.map(row => [row.querySelector('dt').textContent, row.querySelector('dd').textContent]));
 }
 async function simpleForm(page) {
-  assert.deepEqual(await page.locator('main form').evaluateAll(forms => forms.map(form => form.id)), ['dqForm', 'dqCuilForm']);
+  assert.deepEqual(await page.locator('main form').evaluateAll(forms => forms.map(form => form.id)), ['dqCuilForm', 'dqForm']);
   for (const [formId, type] of [['dqForm','CUIT'], ['dqCuilForm','CUIL']]) {
     const form = page.locator('#' + formId);
     assert.equal(await page.getByRole('heading', {name:'Consulta ' + type, exact:true}).count(), 1);
     assert.equal(await form.locator('input[type=text]').count(), 1);
+    assert.equal(await form.getByRole('textbox', {name: 'Número de DNI', exact: true}).count(), 1);
     assert.equal(await form.locator('input[type=radio]').count(), type === 'CUIL' ? 2 : 0);
     assert.equal(await form.locator('button[type=submit]').count(), 1);
   }
