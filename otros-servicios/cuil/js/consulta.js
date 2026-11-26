@@ -4,7 +4,6 @@
   const inputElement = document.getElementById('dqValue');
   const button = form.querySelector('button[type=submit]');
   const unavailable = ['Consulta temporalmente no disponible', 'Todavía no está habilitada la consulta de CUIL / CUIT.'];
-  const notFound = ['Sin coincidencias en el padrón', 'La fuente consultada no informó una clave para ese DNI.'];
   let busy = false;
   const errors = {
     proteccion_sin_configurar: unavailable,
@@ -98,12 +97,16 @@
         ['DNI', dni]
       ];
       if (type === 'CUIT' && data.fuente === 'ConsultaCUIT') rows.push(['Fuente', 'ConsultaCUIT']);
+      if (type === 'CUIL' && data.fuente === 'ARCA A13') rows.push(['Fuente', 'ARCA A13']);
       const date = padronDate(data.fechaPadron);
       if (date) rows.push(['Fecha del padrón', date]);
       DattaUtil.fields('dqResult', type + ' confirmado', rows, 'success');
     } catch (error) {
       if (['clave_no_encontrada', 'cuil_no_encontrado'].includes(error && error.code)) {
-        DattaUtil.result('dqResult', notFound[0], notFound[1], 'info');
+        const detail = error.code === 'clave_no_encontrada'
+          ? 'ConsultaCUIT no encontró un CUIT para ese DNI. No se pudo confirmar un CUIL.'
+          : 'El padrón consultado no informó un CUIL para ese DNI.';
+        DattaUtil.result('dqResult', 'Sin coincidencias en el padrón', detail, 'info');
         return;
       }
       const message = errors[error && error.code] || ['No se pudo verificar la clave', 'La consulta no pudo completarse. Intentá nuevamente más tarde.'];

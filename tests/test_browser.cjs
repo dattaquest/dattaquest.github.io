@@ -79,7 +79,13 @@ async function simpleForm(page) {
       assert.ok(Number.isInteger(event.durationMs) && event.durationMs >= 0);
       assert.ok(event.client.width > 0 && event.client.height > 0);
       if (event.service === 'cuil') {
-        assert.deepEqual(Object.keys(event).sort(), ['action', 'client', 'durationMs', 'outcome', 'service', 'version']);
+        const keys = ['action', 'client', 'durationMs', 'outcome', 'service', 'version'];
+        if (event.outcome === 'invalida') {
+          keys.push('detail');
+          assert.deepEqual(Object.keys(event.detail), ['entrada']);
+          assert.ok(['a••••••••', '••••/••••', '••••••••'].includes(event.detail.entrada));
+        }
+        assert.deepEqual(Object.keys(event).sort(), keys.sort());
         assert.doesNotMatch(request.postData(), /12345678|20123456786/);
       }
       events.push(event);
@@ -203,6 +209,7 @@ async function simpleForm(page) {
   state.cuil = {status: 404, body: {error: 'clave_no_encontrada'}};
   await submit(page, '12345678');
   await page.waitForFunction(() => document.getElementById('dqResult').textContent.includes('Sin coincidencias en el padrón'));
+  assert.match(await page.locator('#dqResult').textContent(), /ConsultaCUIT no encontró un CUIT/);
   await visibleResult(page, 'info');
   assert.deepEqual(await rows(page), []);
   assert.equal(await page.locator('#dqResult a').count(), 0);
