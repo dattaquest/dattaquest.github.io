@@ -8,8 +8,6 @@
     proveedor_sin_configurar: unavailable,
     servicio_no_disponible: ['Consulta temporalmente no disponible', 'No se pudo completar la consulta. Intentá nuevamente más tarde.'],
     dni_ambiguo: ['No se pudo confirmar una única clave', 'El documento tiene más de una clave asociada. No se puede identificar un único resultado.'],
-    clave_no_es_cuil: ['CUIL no confirmado', 'El padrón no informó una clave de tipo CUIL para ese DNI.'],
-    cuil_no_habilitado: ['Padrón de CUIL no disponible', 'DattaQuest todavía no tiene acceso al padrón para consultar este DNI.'],
     respuesta_no_verificada: ['No se pudo verificar la clave', 'La respuesta recibida no permite confirmar un CUIL o CUIT para ese DNI.'],
     dato_invalido: ['DNI no válido', 'Ingresá un DNI de 7 u 8 dígitos.'],
     solicitud_duplicada: ['Consulta ya recibida', 'Esta solicitud ya fue procesada. Podés iniciar una nueva consulta.'],
@@ -43,17 +41,22 @@
     return value.slice(8) + '/' + value.slice(5, 7) + '/' + value.slice(0, 4);
   }
 
-  function configureForm(type, formId, inputId, resultId) {
-    const form = document.getElementById(formId);
-    const input = document.getElementById(inputId);
+  function normalizeDni(value) {
+    const trimmed = value.trim();
+    return /^[0-9 .]+$/.test(trimmed) ? trimmed.replace(/[ .]/g, '') : '';
+  }
+
+  function configureCuitForm() {
+    const form = document.getElementById('dqForm');
+    const input = document.getElementById('dqValue');
+    const resultId = 'dqResult';
     const button = form.querySelector('button[type=submit]');
 
     form.addEventListener('submit', async event => {
       event.preventDefault();
       if (busy) return;
       const started = performance.now();
-      const rawInput = input.value.trim();
-      const dni = /^[0-9 .]+$/.test(rawInput) ? rawInput.replace(/[ .]/g, '') : '';
+      const dni = normalizeDni(input.value);
       if (!/^\d{7,8}$/.test(dni) || /^0+$/.test(dni)) {
         window.DattaRegistro?.begin?.('cuil', 'invalida', started, input.value)?.('invalida');
         input.setAttribute('aria-invalid', 'true');
@@ -70,30 +73,26 @@
       input.readOnly = true;
       button.textContent = 'Consultando…';
       form.setAttribute('aria-busy', 'true');
-      DattaUtil.result(resultId, 'Consultando ' + type, 'Buscando la clave asociada al documento...', 'info');
+      DattaUtil.result(resultId, 'Consultando CUIT', 'Buscando la clave asociada al documento...', 'info');
       try {
-        const data = await DattaApi.request('cuil', {dni, tipoClave: type}, {entrada: input.value});
-        const raw = data && data[type.toLowerCase()];
+        const data = await DattaApi.request('cuil', {dni, tipoClave: 'CUIT'}, {entrada: input.value});
+        const raw = data && data.cuit;
         const key = typeof raw === 'string' && /^(?:\d{11}|\d{2}-\d{8}-\d)$/.test(raw) ? raw.replace(/-/g, '') : '';
-        if (!data || data.verificado !== true || data.tipoClave !== type ||
+        if (!data || data.verificado !== true || data.tipoClave !== 'CUIT' ||
             !/^\d{11}$/.test(key) || !['20', '23', '24', '27'].includes(key.slice(0, 2)) ||
             typeof data.dni !== 'string' || !/^\d{7,8}$/.test(data.dni) ||
             data.dni.padStart(8, '0') !== dni.padStart(8, '0') ||
             key.slice(2, 10) !== dni.padStart(8, '0') || !check(key)) {
           throw Object.assign(Error('API_BAD_RESPONSE'), {code: 'respuesta_no_verificada'});
         }
-        const rows = [[type, formatKey(key)], ['DNI', dni]];
-        if (type === 'CUIT' && data.fuente === 'ConsultaCUIT') rows.push(['Fuente', 'ConsultaCUIT']);
-        if (type === 'CUIL' && data.fuente === 'ARCA A13') rows.push(['Fuente', 'ARCA A13']);
+        const rows = [['CUIT', formatKey(key)], ['DNI', dni]];
+        if (data.fuente === 'ConsultaCUIT') rows.push(['Fuente', 'ConsultaCUIT']);
         const date = padronDate(data.fechaPadron);
         if (date) rows.push(['Fecha del padrón', date]);
-        DattaUtil.fields(resultId, type + ' confirmado', rows, 'success');
+        DattaUtil.fields(resultId, 'CUIT confirmado', rows, 'success');
       } catch (error) {
         if (['clave_no_encontrada', 'cuil_no_encontrado'].includes(error?.code)) {
-          const detail = type === 'CUIT'
-            ? 'ConsultaCUIT no encontró un CUIT para ese DNI.'
-            : 'El padrón consultado no informó un CUIL para ese DNI.';
-          DattaUtil.result(resultId, 'Sin coincidencias en el padrón', detail, 'info');
+          DattaUtil.result(resultId, 'Sin coincidencias en el padrón', 'ConsultaCUIT no encontró un CUIT para ese DNI.', 'info');
           return;
         }
         const message = errors[error?.code] || ['No se pudo verificar la clave', 'La consulta no pudo completarse. Intentá nuevamente más tarde.'];
@@ -108,6 +107,68 @@
     });
   }
 
-  configureForm('CUIT', 'dqForm', 'dqValue', 'dqResult');
-  configureForm('CUIL', 'dqCuilForm', 'dqCuilValue', 'dqCuilResult');
+  function estimateCuil(dni, prefix) {
+    const body = dni.padStart(8, '0');
+    let digit = verificationDigit(prefix + body);
+    if (digit === null) {
+      prefix = '23';
+      digit = verificationDigit(prefix + body);
+    }
+    return formatKey(prefix + body + digit);
+  }
+
+  function configureCuilForm() {
+    const form = document.getElementById('dqCuilForm');
+    const input = document.getElementById('dqCuilValue');
+    const male = document.getElementById('dqCuilM');
+    const female = document.getElementById('dqCuilF');
+    const result = document.getElementById('dqCuilResult');
+    const copy = document.getElementById('dqCuilCopy');
+    const copyStatus = document.getElementById('dqCuilCopyStatus');
+    let displayed = '';
+
+    function render(submitted) {
+      const dni = normalizeDni(input.value);
+      const valid = /^\d{5,8}$/.test(dni);
+      input.setAttribute('aria-invalid', String(submitted && !valid));
+      copyStatus.textContent = '';
+      copy.hidden = !valid;
+      if (valid) {
+        displayed = estimateCuil(dni, male.checked ? '20' : '27');
+        DattaUtil.fields('dqCuilResult', 'CUIL estimado', [['CUIL', displayed]], 'info');
+      } else {
+        displayed = '';
+        if (submitted) {
+          DattaUtil.result('dqCuilResult', 'DNI no válido', 'Ingresá un DNI de 5 a 8 dígitos.', 'error');
+        } else {
+          result.textContent = '';
+          result.classList.remove('is-visible');
+        }
+      }
+      return valid;
+    }
+
+    input.addEventListener('input', () => render(false));
+    male.addEventListener('change', () => render(false));
+    female.addEventListener('change', () => render(false));
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      const started = performance.now();
+      const valid = render(true);
+      window.DattaRegistro?.begin?.('cuil', valid ? 'calculo' : 'invalida', started, input.value)?.(valid ? 'ok' : 'invalida');
+    });
+    copy.addEventListener('click', async () => {
+      const value = displayed;
+      if (!value) return;
+      try {
+        await navigator.clipboard.writeText(value);
+        if (value === displayed) copyStatus.textContent = 'CUIL copiado.';
+      } catch {
+        if (value === displayed) copyStatus.textContent = 'Seleccioná el número para copiarlo.';
+      }
+    });
+  }
+
+  configureCuitForm();
+  configureCuilForm();
 })();
