@@ -2,7 +2,6 @@
   'use strict';
   const unavailable = ['Consulta temporalmente no disponible', 'Todavía no está habilitada esta consulta.'];
   let busy = false;
-  let cuilEnabled = false;
   const errors = {
     proteccion_sin_configurar: unavailable,
     proveedor_no_autorizado: unavailable,
@@ -10,7 +9,7 @@
     servicio_no_disponible: ['Consulta temporalmente no disponible', 'No se pudo completar la consulta. Intentá nuevamente más tarde.'],
     dni_ambiguo: ['No se pudo confirmar una única clave', 'El documento tiene más de una clave asociada. No se puede identificar un único resultado.'],
     clave_no_es_cuil: ['CUIL no confirmado', 'El padrón no informó una clave de tipo CUIL para ese DNI.'],
-    cuil_no_habilitado: ['Consulta CUIL pendiente de habilitación', 'Falta habilitar el acceso a un padrón que informe el CUIL registrado.'],
+    cuil_no_habilitado: ['Padrón de CUIL no disponible', 'DattaQuest todavía no tiene acceso al padrón para consultar este DNI.'],
     respuesta_no_verificada: ['No se pudo verificar la clave', 'La respuesta recibida no permite confirmar un CUIL o CUIT para ese DNI.'],
     dato_invalido: ['DNI no válido', 'Ingresá un DNI de 7 u 8 dígitos.'],
     solicitud_duplicada: ['Consulta ya recibida', 'Esta solicitud ya fue procesada. Podés iniciar una nueva consulta.'],
@@ -51,7 +50,7 @@
 
     form.addEventListener('submit', async event => {
       event.preventDefault();
-      if (busy || (type === 'CUIL' && !cuilEnabled)) return;
+      if (busy) return;
       const started = performance.now();
       const rawInput = input.value.trim();
       const dni = /^[0-9 .]+$/.test(rawInput) ? rawInput.replace(/[ .]/g, '') : '';
@@ -111,36 +110,4 @@
 
   configureForm('CUIT', 'dqForm', 'dqValue', 'dqResult');
   configureForm('CUIL', 'dqCuilForm', 'dqCuilValue', 'dqCuilResult');
-
-  async function checkCuilAvailability() {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 25000);
-    const input = document.getElementById('dqCuilValue');
-    const button = document.getElementById('dqCuilForm').querySelector('button[type=submit]');
-    try {
-      if (!DattaApi.enabled('cuil')) throw Error('sin_endpoint');
-      const response = await fetch(window.DATTA_API_ENDPOINTS.cuil, {
-        method: 'GET', mode: 'cors', credentials: 'omit', cache: 'no-store',
-        redirect: 'error', referrerPolicy: 'no-referrer', signal: controller.signal
-      });
-      if (!response.ok) throw Error('estado_no_disponible');
-      const state = await response.json();
-      if (typeof state?.cuilHabilitado !== 'boolean') throw Error('estado_invalido');
-      cuilEnabled = state.cuilHabilitado;
-      if (cuilEnabled) {
-        const result = document.getElementById('dqCuilResult');
-        result.textContent = '';
-        result.classList.remove('is-visible');
-      } else {
-        DattaUtil.result('dqCuilResult', errors.cuil_no_habilitado[0], errors.cuil_no_habilitado[1], 'info');
-      }
-    } catch {
-      DattaUtil.result('dqCuilResult', 'No se pudo comprobar la disponibilidad de CUIL', 'Actualizá la página para volver a comprobar el servicio.', 'info');
-    } finally {
-      clearTimeout(timer);
-      input.disabled = !cuilEnabled;
-      button.disabled = !cuilEnabled;
-    }
-  }
-  checkCuilAvailability();
 })();

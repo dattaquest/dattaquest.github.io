@@ -162,7 +162,6 @@ async function test(name, callback) { await callback(); passed++; console.log('O
   });
 
   await test('CUIL usa el segundo DNI, comprueba el tipo de clave y conserva el CUIT anterior', async () => {
-    const checked = [];
     const requests = [];
     const invalidInputs = [];
     const dniCuit = '12345678';
@@ -170,7 +169,6 @@ async function test(name, callback) { await callback(); passed++; console.log('O
     const verifiedCuit = {verificado: true, tipoClave: 'CUIT', dni: dniCuit, cuit: syntheticCuil(dniCuit)};
     let answer = verifiedCuit;
     const h = harness('cuil', {
-      fetch: async (url, options) => { checked.push({url, options}); return json({cuilHabilitado: true}); },
       DattaRegistro: {begin: (route, action, started, input) => outcome => {
         invalidInputs.push({route, action, input, outcome});
       }},
@@ -179,13 +177,6 @@ async function test(name, callback) { await callback(); passed++; console.log('O
         return answer;
       }}
     });
-    await new Promise(resolve => setImmediate(resolve));
-    assert.equal(checked.length, 1);
-    assert.equal(checked[0].url, h.context.DATTA_API_ENDPOINTS.cuil);
-    assert.equal(checked[0].options.method, 'GET');
-    assert.equal(checked[0].options.body, undefined);
-    assert.equal(h.elements.dqCuilValue.disabled, false);
-    assert.equal(h.elements.dqCuilForm.button.disabled, false);
     await h.submit('arriba!');
     await h.submit('abajo?', 'CUIL');
     assert.deepEqual(invalidInputs, ['arriba!', 'abajo?'].map(input => ({
@@ -216,25 +207,31 @@ async function test(name, callback) { await callback(); passed++; console.log('O
     assert.deepEqual(fields(h.elements.dqCuilResult), []);
   });
 
-  await test('CUIL queda pendiente sin padrón habilitado y CUIT continúa disponible', async () => {
-    const failure = /No se pudo comprobar la disponibilidad de CUIL/;
-    for (const [health, expected] of [[json({cuilHabilitado: false}), /Consulta CUIL pendiente de habilitación/],
-      [json({}), failure], [json({}, 503), failure]]) {
-      let calls = 0;
-      const h = harness('cuil', {fetch: async () => health, DattaApi: {
-        enabled: () => true, request: async () => { calls++; throw Object.assign(Error(), {code: 'clave_no_encontrada'}); }
-      }});
-      await new Promise(resolve => setImmediate(resolve));
-      assert.equal(h.elements.dqCuilForm.button.disabled, true);
-      assert.equal(h.elements.dqCuilValue.disabled, true);
-      assert.match(h.elements.dqCuilResult.textContent, expected);
+  await test('CUIL permite enviar y reintentar cuando el padrón no está disponible', async () => {
+    const calls = [];
+    let code;
+    const h = harness('cuil', {DattaApi: {
+      enabled: () => true, request: async (route, payload) => {
+        calls.push(payload.tipoClave);
+        throw Object.assign(Error(), {code});
+      }
+    }});
+    assert.equal(h.elements.dqCuilResult.textContent, '');
+    for (const [error, expected] of [
+      ['cuil_no_habilitado', /Padrón de CUIL no disponible/],
+      ['servicio_no_disponible', /Consulta temporalmente no disponible/]
+    ]) {
+      code = error;
       await h.submit('12345678', 'CUIL');
-      assert.equal(calls, 0);
-      await h.submit('12345678');
-      assert.equal(calls, 1);
-      assert.equal(h.elements.dqResult.dataset.type, 'info');
-      assert.equal(h.elements.dqCuilValue.disabled, true);
+      assert.match(h.elements.dqCuilResult.textContent, expected);
+      assert.equal(h.elements.dqCuilResult.dataset.type, 'error');
+      assert.equal(h.elements.dqCuilForm.button.disabled, false);
+      assert.equal(h.elements.dqCuilValue.readOnly, false);
     }
+    code = 'clave_no_encontrada';
+    await h.submit('12345678');
+    assert.equal(h.elements.dqResult.dataset.type, 'info');
+    assert.deepEqual(calls, ['CUIL', 'CUIL', 'CUIT']);
   });
 
   await test('no confirma claves calculadas, corporativas, ambiguas o de otro DNI', async () => {

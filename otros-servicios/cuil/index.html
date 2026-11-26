@@ -110,11 +110,11 @@
    <h2 id="tituloCuil">Consulta CUIL</h2>
    <form id="dqCuilForm" aria-busy="false" novalidate>
     <label for="dqCuilValue" class="dq-field">Número de DNI (propio)</label>
-    <input class="dq-input" id="dqCuilValue" type="text" autocomplete="off" inputmode="numeric" placeholder="Ej.: 12345678" maxlength="10" aria-describedby="dqCuilHelp dqCuilResult" required disabled>
+    <input class="dq-input" id="dqCuilValue" type="text" autocomplete="off" inputmode="numeric" placeholder="Ej.: 12345678" maxlength="10" aria-describedby="dqCuilHelp dqCuilResult" required>
     <p class="dq-help" id="dqCuilHelp">Ingresá tu DNI de 7 u 8 dígitos para consultar tu CUIL registrado.</p>
-    <div class="dq-actions"><button class="dq-btn" type="submit" disabled>Consultar</button></div>
+    <div class="dq-actions"><button class="dq-btn" type="submit">Consultar</button></div>
    </form>
-   <div id="dqCuilResult" class="dq-result is-visible" role="status" aria-live="polite" aria-atomic="true" data-type="info"><strong>Comprobando disponibilidad de CUIL…</strong></div>
+   <div id="dqCuilResult" class="dq-result" role="status" aria-live="polite" aria-atomic="true"></div>
   </section>
   </div>
   <aside class="dq-panel"><h3>Información del servicio</h3>
@@ -141,6 +141,6 @@
 <script src="../comun/api-config.js"></script>
 <script src="./js/config.js"></script>
 <script src="../comun/api-client.js?v=dos-consultas-1"></script>
-<script src="./js/consulta.js?v=dos-consultas-2"></script>
+<script src="./js/consulta.js?v=dos-consultas-3"></script>
 </body>
 </html>
