@@ -331,6 +331,18 @@ async function simpleForm(page) {
   await submit(page, '011');
   await visibleResult(page, 'success');
   assert.deepEqual((await rows(page)).map(row => row[0]), ['Código de área: ', 'Área cabecera: ', 'Provincia: ']);
+  await page.setViewportSize({width: 400, height: 896});
+  await page.locator('.navbar-toggler').click();
+  await page.locator('#navbarSupportedContent.show').waitFor();
+  const offset = await page.locator('#dqBotonOtros').evaluate(button => {
+    const range = document.createRange();
+    range.selectNodeContents(button);
+    const label = range.getBoundingClientRect();
+    const bar = button.closest('.navbar').getBoundingClientRect();
+    return (label.left + label.right - bar.left - bar.right) / 2;
+  });
+  assert.ok(Math.abs(offset) <= 1, `Otros servicios está descentrado ${offset} px en el menú móvil`);
+  await page.setViewportSize({width: 1280, height: 1000});
   await page.goto(base + '/otros-servicios/dolar/index.html');
   await page.waitForSelector('#dqQuotes .dq-field-row');
   assert.deepEqual((await rows(page, '#dqQuotes')).map(row => row[0]), ['Compra: ', 'Venta: ', 'Actualizado: ']);
