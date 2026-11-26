@@ -354,6 +354,29 @@ async function simpleForm(page) {
   assert.deepEqual(pageErrors, [], 'Sin excepciones JavaScript en las páginas');
   assert.equal(externalRequests.some(url => /challenges\.cloudflare\.com|recaptcha|hcaptcha/i.test(url)), false, 'No se solicita ningún servicio CAPTCHA');
   assert.equal(new Set(requests.map(item => item.payload.requestId)).size, requests.length, 'Cada consulta recibe un identificador nuevo');
+  for (const pathname of ['/index.html', '/Acerca.html', '/otros-servicios/cuil/index.html']) {
+    await page.goto(base + pathname);
+    await page.locator('#dqBotonOtros').click();
+    await page.locator('#dqCollapseOtros.show').waitFor();
+    for (const width of [992, 1440]) {
+      await page.setViewportSize({width, height: 900});
+      const {panelOffset, rowSpread} = await page.evaluate(() => {
+        const button = document.getElementById('dqBotonOtros').getBoundingClientRect();
+        const panel = document.getElementById('dqCollapseOtros').getBoundingClientRect();
+        const controls = document.querySelectorAll('.navbar-nav > li > a, #tumama, #dqBotonOtros');
+        const centers = Array.from(controls, control => {
+          const box = control.getBoundingClientRect();
+          return box.top + box.height / 2;
+        });
+        return {
+          panelOffset: (panel.left + panel.right - button.left - button.right) / 2,
+          rowSpread: Math.max(...centers) - Math.min(...centers)
+        };
+      });
+      assert.ok(Math.abs(panelOffset) <= 1, `Desplegable descentrado en ${pathname} a ${width}px: ${panelOffset}px`);
+      assert.ok(rowSpread <= 1, `Barra desalineada en ${pathname} a ${width}px: ${rowSpread}px`);
+    }
+  }
   console.log('Capturas:', path.join(output, 'prestador-desktop.png'), path.join(output, 'prestador-movil.png'));
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => {
   if (browser) await browser.close();

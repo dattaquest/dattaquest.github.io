@@ -75,6 +75,10 @@
  .navbar #navbarSupportedContent>.navbar-nav>li>a.nav-link{display:inline-flex;align-items:center;white-space:nowrap;padding:8px 3px!important;line-height:1.2!important;margin:0!important;}
  .navbar .dq-otros-nav{align-self:center;}
  .navbar .dq-otros-nav .dq-nav-heading{display:flex;align-items:center;}
+ .navbar #dqCollapseOtros {
+   left: 50%;
+   transform: translateX(-50%);
+ }
  .navbar .container{max-width:1250px;}
 }
 @media (min-width:992px) and (max-width:1199px){.navbar #navbarSupportedContent>.navbar-nav{gap:6px!important;} .navbar .dq-nav-trigger,.navbar #tumama{font-size:14px!important;} .navbar #navbarSupportedContent>.navbar-nav>li>a.nav-link{font-size:14px!important;}}
