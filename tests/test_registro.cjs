@@ -30,3 +30,35 @@ test('los pedidos y las consultas locales envían sólo metadatos al colector', 
   assert.deepEqual(Object.keys(w.DattaRegistro.headers('https://otro.example/api/cuil')),[]);
   assert.ok(w.DattaRegistro.headers('https://dattaquest-consultacuit.sizedhatch64.chatgpt.site/api/cuil')['X-Datta-Client']);
 });
+
+test('v2 sólo se activa explícitamente y registra una vez la duración', () => {
+  const calls=[];
+  let time=100;
+  const w={document:{addEventListener(){}},navigator:{},screen:{width:412,height:915},URL,
+    performance:{now:()=>time},fetch:(url,params)=>{calls.push(JSON.parse(params.body));return Promise.resolve();}};
+  w.window=w;
+  vm.runInNewContext(read('otros-servicios/comun/registro.js'),w);
+  const old=w.DattaRegistro.begin('prefijos','consulta');
+  old('ok',{codigo:'11'});
+  assert.equal(calls.length,1);
+  assert.deepEqual(Object.keys(calls[0]).sort(),['action','client','service']);
+  w.DATTA_LOGS_V2=true;
+  const finish=w.DattaRegistro.begin('prefijos','consulta');
+  assert.equal(calls.length,1);
+  time=225;
+  finish('ok',{tipo:'codigo',codigo:'11',total:1});
+  finish('error');
+  assert.equal(calls.length,2);
+  assert.equal(calls[1].durationMs,125);
+  assert.equal(calls[1].outcome,'ok');
+  assert.equal(calls[1].detail.codigo,'11');
+  assert.equal(calls[1].providerHttp,undefined);
+  const paid=w.DattaRegistro.begin('celulares','pedido');
+  paid('ok',{numero:'1234567890'});
+  assert.equal(calls.length,3);
+  assert.deepEqual(Object.keys(calls[2]).sort(),['action','client','service']);
+  const dollar=w.DattaRegistro.begin('dolar','actualizacion');
+  time=300; dollar('ok',{cotizaciones:[]},200);
+  assert.equal(calls[3].providerHttp,200);
+  assert.equal(calls[3].durationMs,75);
+});
