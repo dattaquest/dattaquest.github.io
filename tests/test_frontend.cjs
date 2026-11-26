@@ -30,21 +30,25 @@ function runScript(context, relative) {
 function harness(module, overrides = {}) {
   const elements = {};
   const createdTags = [];
-  for (const id of ['dqForm', 'dqValue', 'dqResult', 'dqCurrent', 'dqRefresh', 'dqUpdated', 'dqQuotes']) elements[id] = new Element();
+  for (const id of ['dqForm', 'dqValue', 'dqResult', 'dqCurrent', 'dqRefresh', 'dqUpdated', 'dqQuotes', 'dqCuilForm', 'dqCuilValue', 'dqCuilResult']) elements[id] = new Element();
   elements.dqForm.button = new Element('button');
+  elements.dqCuilForm.button = new Element('button');
   const document = {getElementById: id => elements[id], createElement: tag => { createdTags.push(tag); return new Element(tag); }, head: new Element('head'), body: new Element('body')};
   const storage = new Map();
   const context = vm.createContext({console, setTimeout, clearTimeout, URL, AbortController, Promise, performance,
     document, location: {hostname: 'localhost'},
+    DATTA_API_ENDPOINTS: module === 'cuil' ? {cuil: 'https://conector.example/api/cuil'} : {},
     localStorage: {getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value)},
     fetch: async () => { throw Error('Red no prevista por la prueba'); },
     DattaApi: {enabled: () => false}, ...overrides});
   context.window = context;
   runScript(context, 'otros-servicios/comun/base.js');
   if (module) runScript(context, 'otros-servicios/' + module + '/js/consulta.js');
-  return {context, elements, createdTags, async submit(value) {
-    elements.dqValue.value = value;
-    await elements.dqForm.events.submit({preventDefault() {}, submitter: elements.dqForm.button});
+  return {context, elements, createdTags, async submit(value, type = 'CUIT') {
+    const form = type === 'CUIL' ? elements.dqCuilForm : elements.dqForm;
+    const input = type === 'CUIL' ? elements.dqCuilValue : elements.dqValue;
+    input.value = value;
+    await form.events.submit({preventDefault() {}, submitter: form.button});
   }};
 }
 function fields(element) {
@@ -119,14 +123,14 @@ async function test(name, callback) { await callback(); passed++; console.log('O
     assert.equal(fields(h.elements.dqResult)[0][0], 'Bloque: ');
   });
 
-  await test('CUIL legacy y CUIT personales verificados, fecha y datos mínimos', async () => {
+  await test('CUIT verificado, fecha y datos mínimos de la fuente fiscal', async () => {
     const dni = '12345678';
-    let answer = {verificado: true, tipoClave: 'CUIL', dni, cuil: syntheticCuil(dni)};
-    const h = harness('cuil', {DattaApi: {enabled: route => route === 'cuil', request: async () => answer}});
-    await h.submit(dni);
-    assert.equal(h.elements.dqResult.dataset.type, 'success');
-    assert.deepEqual(fields(h.elements.dqResult), [['CUIL: ', '20-12345678-6'], ['DNI: ', dni]]);
-    assert.equal(h.elements.dqResult.children[0].textContent, 'CUIL confirmado');
+    let answer;
+    const h = harness('cuil', {DattaApi: {enabled: route => route === 'cuil', request: async (route, payload) => {
+      assert.equal(route, 'cuil');
+      assert.equal(payload.tipoClave, 'CUIT');
+      return answer;
+    }}});
     for (const typePrefix of ['20', '23', '24', '27']) {
       const cuit = syntheticCuil(dni, typePrefix);
       answer = {verificado: true, tipoClave: 'CUIT', dni, cuit, fuente: 'ConsultaCUIT', fechaPadron: '2026-10-10',
@@ -141,7 +145,7 @@ async function test(name, callback) { await callback(); passed++; console.log('O
       assert.equal(h.elements.dqResult.children.some(element => element.tagName === 'A'), false);
       assert.doesNotMatch(h.elements.dqResult.textContent, /NO MOSTRAR|CUIL confirmado|situacion_fiscal/);
     }
-    answer = {verificado: true, tipoClave: 'CUIL', dni, cuil: '20-12345678-6'};
+    answer = {verificado: true, tipoClave: 'CUIT', dni, cuit: '20-12345678-6'};
     await h.submit(dni);
     assert.equal(h.elements.dqResult.dataset.type, 'success');
     for (const invalidDate of [null, undefined, '2026-02-30', '2026-13-01', '10/10/2026', '<img src=x>']) {
@@ -157,6 +161,82 @@ async function test(name, callback) { await callback(); passed++; console.log('O
     assert.equal(fields(h.elements.dqResult)[1][1], shortDni);
   });
 
+  await test('CUIL usa el segundo DNI, comprueba el tipo de clave y conserva el CUIT anterior', async () => {
+    const checked = [];
+    const requests = [];
+    const invalidInputs = [];
+    const dniCuit = '12345678';
+    const dniCuil = '12345679';
+    const verifiedCuit = {verificado: true, tipoClave: 'CUIT', dni: dniCuit, cuit: syntheticCuil(dniCuit)};
+    let answer = verifiedCuit;
+    const h = harness('cuil', {
+      fetch: async (url, options) => { checked.push({url, options}); return json({cuilHabilitado: true}); },
+      DattaRegistro: {begin: (route, action, started, input) => outcome => {
+        invalidInputs.push({route, action, input, outcome});
+      }},
+      DattaApi: {enabled: () => true, request: async (route, payload, metadata) => {
+        requests.push({route, payload: {...payload}, metadata: {...metadata}});
+        return answer;
+      }}
+    });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(checked.length, 1);
+    assert.equal(checked[0].url, h.context.DATTA_API_ENDPOINTS.cuil);
+    assert.equal(checked[0].options.method, 'GET');
+    assert.equal(checked[0].options.body, undefined);
+    assert.equal(h.elements.dqCuilValue.disabled, false);
+    assert.equal(h.elements.dqCuilForm.button.disabled, false);
+    await h.submit('arriba!');
+    await h.submit('abajo?', 'CUIL');
+    assert.deepEqual(invalidInputs, ['arriba!', 'abajo?'].map(input => ({
+      route: 'cuil', action: 'invalida', input, outcome: 'invalida'
+    })));
+    assert.equal(requests.length, 0);
+    await h.submit(dniCuit);
+    const cuitResult = h.elements.dqResult.textContent;
+    answer = {verificado: true, tipoClave: 'CUIL', dni: dniCuil, cuil: syntheticCuil(dniCuil), fuente: 'ARCA A13'};
+    await h.submit('12.345.679', 'CUIL');
+    assert.equal(h.elements.dqCuilResult.children[0].textContent, 'CUIL confirmado');
+    assert.deepEqual(Object.fromEntries(fields(h.elements.dqCuilResult)), {
+      'CUIL: ': '20-' + dniCuil + '-' + answer.cuil.slice(-1), 'DNI: ': dniCuil, 'Fuente: ': 'ARCA A13'
+    });
+    assert.equal(h.elements.dqResult.textContent, cuitResult);
+    assert.deepEqual(requests, [
+      {route: 'cuil', payload: {dni: dniCuit, tipoClave: 'CUIT'}, metadata: {entrada: dniCuit}},
+      {route: 'cuil', payload: {dni: dniCuil, tipoClave: 'CUIL'}, metadata: {entrada: '12.345.679'}}
+    ]);
+    answer = {...verifiedCuit, dni: dniCuil, cuit: syntheticCuil(dniCuil)};
+    await h.submit(dniCuil, 'CUIL');
+    assert.equal(h.elements.dqCuilResult.dataset.type, 'error', 'Un CUIT no debe aparecer como resultado del formulario CUIL');
+    assert.deepEqual(fields(h.elements.dqCuilResult), []);
+    assert.equal(h.elements.dqResult.textContent, cuitResult);
+    h.context.DattaApi.request = async () => { throw Object.assign(Error(), {code: 'cuil_no_encontrado'}); };
+    await h.submit(dniCuil, 'CUIL');
+    assert.equal(h.elements.dqCuilResult.dataset.type, 'info');
+    assert.deepEqual(fields(h.elements.dqCuilResult), []);
+  });
+
+  await test('CUIL queda pendiente sin padrón habilitado y CUIT continúa disponible', async () => {
+    const failure = /No se pudo comprobar la disponibilidad de CUIL/;
+    for (const [health, expected] of [[json({cuilHabilitado: false}), /Consulta CUIL pendiente de habilitación/],
+      [json({}), failure], [json({}, 503), failure]]) {
+      let calls = 0;
+      const h = harness('cuil', {fetch: async () => health, DattaApi: {
+        enabled: () => true, request: async () => { calls++; throw Object.assign(Error(), {code: 'clave_no_encontrada'}); }
+      }});
+      await new Promise(resolve => setImmediate(resolve));
+      assert.equal(h.elements.dqCuilForm.button.disabled, true);
+      assert.equal(h.elements.dqCuilValue.disabled, true);
+      assert.match(h.elements.dqCuilResult.textContent, expected);
+      await h.submit('12345678', 'CUIL');
+      assert.equal(calls, 0);
+      await h.submit('12345678');
+      assert.equal(calls, 1);
+      assert.equal(h.elements.dqResult.dataset.type, 'info');
+      assert.equal(h.elements.dqCuilValue.disabled, true);
+    }
+  });
+
   await test('no confirma claves calculadas, corporativas, ambiguas o de otro DNI', async () => {
     const dni = '12345678';
     const valid = {verificado: true, tipoClave: 'CUIT', dni, cuit: syntheticCuil(dni)};
@@ -167,7 +247,7 @@ async function test(name, callback) { await callback(); passed++; console.log('O
       {...valid, cuit: valid.cuit.slice(0, -1) + '0'}, {...valid, cuit: valid.cuit.slice(1)},
       {...valid, cuit: syntheticCuil(dni, '30')}, {...valid, cuit: syntheticCuil(dni, '33')},
       {...valid, verificado: false}, {...valid, verificado: 'true'}, {...valid, verificado: undefined},
-      {...valid, tipoClave: 'CDI'}, {...valid, tipoClave: 'CUIL'}, {...valid, dni: undefined},
+      {...valid, tipoClave: 'CDI'}, {verificado: true, tipoClave: 'CUIL', dni, cuil: valid.cuit}, {...valid, dni: undefined},
       {...valid, cuit: Number(valid.cuit)}, {...valid, cuit: '20--12345678--6'},
       {verificado: true, claves: [valid, valid]}, null, []
     ]) {
@@ -180,7 +260,7 @@ async function test(name, callback) { await callback(); passed++; console.log('O
     }
   });
 
-  await test('CUIL distingue ausencia en fuente, ambigüedad, servicio y límite', async () => {
+  await test('CUIT distingue ausencia en fuente, ambigüedad, servicio y límite', async () => {
     const h = harness('cuil', {DattaApi: {enabled: () => true}});
     for (const [code, expected] of [
       ['dni_ambiguo', /más de una clave/], ['servicio_no_disponible', /Consulta temporalmente no disponible/],
@@ -202,9 +282,9 @@ async function test(name, callback) { await callback(); passed++; console.log('O
     const h = harness('cuil', {DattaApi: {
       enabled: () => true, request: async () => { calls++; throw Object.assign(Error(), {code}); }
     }});
-    for (const missing of ['clave_no_encontrada', 'cuil_no_encontrado']) {
-      code = missing;
-      await h.submit(dni);
+    for (const sampleDni of [dni, '1234567']) {
+      code = 'clave_no_encontrada';
+      await h.submit(sampleDni);
       assert.equal(h.elements.dqResult.dataset.type, 'info');
       assert.deepEqual(fields(h.elements.dqResult), []);
       assert.match(h.elements.dqResult.textContent, /Sin coincidencias en el padrón/);
@@ -216,7 +296,7 @@ async function test(name, callback) { await callback(); passed++; console.log('O
     assert.equal(calls, 2);
   });
 
-  await test('CUIL evita doble envío y anuncia validación y estado de carga', async () => {
+  await test('CUIT evita doble envío y anuncia validación y estado de carga', async () => {
     const dni = '12345678';
     let resolve, calls = 0;
     const h = harness('cuil', {DattaApi: {enabled: () => true, request: () => {
@@ -232,7 +312,7 @@ async function test(name, callback) { await callback(); passed++; console.log('O
     assert.equal(h.elements.dqForm.button.textContent, 'Consultando…');
     assert.equal(h.elements.dqForm.attributes['aria-busy'], 'true');
     assert.equal(h.elements.dqResult.attributes.role, 'status');
-    assert.match(h.elements.dqResult.textContent, /Consultando CUIL \/ CUIT/);
+    assert.match(h.elements.dqResult.textContent, /Consultando CUIT/);
     await h.submit(dni);
     assert.equal(calls, 1, 'No se lanza otra consulta ni se reemplaza el estado pendiente');
     resolve({verificado: true, tipoClave: 'CUIT', dni, cuit: syntheticCuil(dni)});
@@ -367,9 +447,9 @@ async function test(name, callback) { await callback(); passed++; console.log('O
     assert.match(html, /id="dqResult"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/);
   });
 
-  await test('CUIL y radicación rechazan basura sin consultar y admiten separadores habituales', async () => {
+  await test('CUIT y radicación rechazan basura sin consultar y admiten separadores habituales', async () => {
     for (const [module, fixture, valid, invalid, key, expected] of [
-      ['cuil', {verificado: true, tipoClave: 'CUIL', dni: '12345678', cuil: syntheticCuil('12345678')},
+      ['cuil', {verificado: true, tipoClave: 'CUIT', dni: '12345678', cuit: syntheticCuil('12345678')},
         ['12.345.678', '12 345 678'], ['a12345678', '12345678!', '1234/5678', '00000000', '<12345678>'], 'dni', '12345678'],
       ['radicacion', {verificado: true, patente: 'AB123CD', registro: 'REGISTRO DE PRUEBA'},
         ['ab-123-cd', 'AB.123.CD'], ['AB/123CD', 'AB123CD!', '<AB123CD>', 'AB123CÑ'], 'patente', 'AB123CD']
@@ -386,7 +466,8 @@ async function test(name, callback) { await callback(); passed++; console.log('O
         await h.submit(value);
         assert.equal(h.elements.dqResult.dataset.type, 'success');
         assert.equal(calls.at(-1).payload[key], expected);
-        assert.deepEqual(Object.keys(calls.at(-1).payload), [key]);
+        const payload = calls.at(-1).payload;
+        assert.deepEqual({...payload}, module === 'cuil' ? {dni: expected, tipoClave: 'CUIT'} : {patente: expected});
       }
     }
   });

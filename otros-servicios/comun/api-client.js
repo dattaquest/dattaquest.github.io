@@ -18,7 +18,7 @@
        (url.protocol==='https:'||(local&&url.protocol==='http:'));
    }catch(e){return false;}
  }
- async function request(route,payload){
+ async function request(route,payload,options = {}){
    if(!enabled(route))throw fail('proveedor_sin_configurar',503);
    if(busy)throw fail('consulta_en_curso',409);
    busy=true;
@@ -29,7 +29,7 @@
      const requestId=crypto.randomUUID();
      const controller=new AbortController();timeout=setTimeout(()=>controller.abort(),25000);
      const res=await fetch(endpoint(route),{method:'POST',mode:'cors',credentials:'omit',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',
-       headers:{'Content-Type':'application/json','Accept':'application/json', ...window.DattaRegistro?.headers(endpoint(route))},
+       headers:{'Content-Type':'application/json','Accept':'application/json', ...window.DattaRegistro?.headers(endpoint(route),options.entrada)},
        body:JSON.stringify({...payload,requestId}),signal:controller.signal});
      let out;
      try {out=await res.json();}catch(e){throw fail('respuesta_no_verificada',502);}

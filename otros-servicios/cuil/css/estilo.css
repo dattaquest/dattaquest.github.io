@@ -1,1 +1,6 @@
-/* Estilos exclusivos de esta herramienta. Personalizá acá sin afectar al resto del sitio. */
+/* Formularios CUIT y CUIL en la misma columna. */
+.dq-consultas {
+  display: grid;
+  gap: 22px;
+  min-width: 0;
+}

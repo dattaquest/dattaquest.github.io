@@ -12,6 +12,7 @@ const root = path.resolve(__dirname, '..');
 const output = path.join(root, 'test-results');
 const requests = [];
 const pageErrors = [];
+const cuilApi = 'https://dattaquest-consultacuit.sizedhatch64.chatgpt.site/api/cuil';
 const events = [];
 const externalRequests = [];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -30,27 +31,33 @@ const server = http.createServer((req, res) => {
 });
 const state = {
   configured: true,
+  cuilHabilitado: false,
   current: null,
   cuil: {status: 200, body: {verificado: true, tipoClave: 'CUIT', dni: '12345678', cuit: '20123456786',
     fuente: 'ConsultaCUIT', fechaPadron: '2026-10-10'}},
 
 };
-async function visibleResult(page, type) {
-  await page.waitForFunction(value => document.getElementById('dqResult').dataset.type === value, type);
+async function visibleResult(page, type, id = 'dqResult') {
+  await page.waitForFunction(([key, value]) => document.getElementById(key).dataset.type === value, [id, type]);
 }
-async function submit(page, value) {
-  await page.locator('#dqValue').fill(value);
-  await page.locator('#dqForm button[type=submit]').click();
+async function submit(page, value, formId = 'dqForm') {
+  const form = page.locator('#' + formId);
+  await form.locator('input').first().fill(value);
+  await form.locator('button[type=submit]').click();
 }
 async function rows(page, selector = '#dqResult') {
   return page.locator(selector + ' .dq-field-row').evaluateAll(elements => elements.map(row => [row.querySelector('dt').textContent, row.querySelector('dd').textContent]));
 }
 async function simpleForm(page) {
-  assert.equal(await page.locator('#dqForm input').count(), 1, 'Un único dato solicitado');
-  assert.equal(await page.locator('#dqForm button[type=submit]').count(), 1);
-  assert.equal(await page.locator('#dqForm button[type=submit]').textContent(), 'Consultar');
-  assert.equal(await page.locator('#dqForm select, #dqPrefix, #dqCalculate, input[type=file]').count(), 0);
-  assert.equal(await page.locator('#dqForm iframe, #dqForm .dq-verification').count(), 0);
+  assert.deepEqual(await page.locator('main form').evaluateAll(forms => forms.map(form => form.id)), ['dqForm', 'dqCuilForm']);
+  for (const [formId, type] of [['dqForm','CUIT'], ['dqCuilForm','CUIL']]) {
+    const form = page.locator('#' + formId);
+    assert.equal(await page.getByRole('heading', {name:'Consulta ' + type, exact:true}).count(), 1);
+    assert.equal(await form.locator('input').count(), 1, 'Se solicita un único dato por formulario');
+    assert.equal(await form.locator('button[type=submit]').count(), 1);
+  }
+  assert.equal(await page.locator('nav a').filter({hasText:/^CUIL\/CUIT$/}).count(), 1);
+  assert.equal(await page.locator('main select, #dqPrefix, #dqCalculate, input[type=file], main iframe, main .dq-verification').count(), 0);
   assert.equal(await page.locator('a[href*="anses"], a[href*="sssalud"], a[href*="constancia-cuil"]').count(), 0);
   assert.equal(await page.locator('script[src*="challenges.cloudflare.com"]').count(), 0);
 }
@@ -70,7 +77,7 @@ async function simpleForm(page) {
       return;
     }
     if (url.pathname === '/otros-servicios/cuil/js/config.js') {
-      await route.fulfill({contentType: 'text/javascript', body: 'window.DATTA_API_ENDPOINTS={cuil:' + JSON.stringify(state.configured ? base + '/api/cuil' : '') + '};'});
+      await route.fulfill({contentType: 'text/javascript', body: 'window.DATTA_API_ENDPOINTS={cuil:' + JSON.stringify(state.configured ? cuilApi : '') + '};'});
       return;
     }
     if (url.origin === 'https://dattaquest-consultacuit.sizedhatch64.chatgpt.site' && url.pathname === '/api/eventos') {
@@ -83,18 +90,34 @@ async function simpleForm(page) {
         if (event.outcome === 'invalida') {
           keys.push('detail');
           assert.deepEqual(Object.keys(event.detail), ['entrada']);
-          assert.ok(['a••••••••', '••••/••••', '••••••••'].includes(event.detail.entrada));
+          assert.ok(['a12345678', '1234/5678', '00000000', 'a987'].includes(event.detail.entrada));
         }
         assert.deepEqual(Object.keys(event).sort(), keys.sort());
-        assert.doesNotMatch(request.postData(), /12345678|20123456786/);
+        assert.doesNotMatch(request.postData(), /20123456786|20123456794/);
       }
       events.push(event);
       await route.fulfill({status:204,headers:{'Access-Control-Allow-Origin':base}});
       return;
     }
-    if (url.origin === base && url.pathname.startsWith('/api/')) {
+    if (request.url() === cuilApi || (url.origin === base && url.pathname.startsWith('/api/'))) {
+      const cors = {'Access-Control-Allow-Origin':base, 'Access-Control-Allow-Methods':'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers':'Content-Type, X-Datta-Client'};
+      if (request.method() === 'OPTIONS') {
+        await route.fulfill({status:204, headers:cors});
+        return;
+      }
+      if (url.pathname === '/api/cuil' && request.method() === 'GET') {
+        assert.equal(url.search, '');
+        assert.equal(request.postData(), null);
+        assert.equal(request.headers()['x-datta-client'], undefined);
+        await route.fulfill({headers:cors, contentType:'application/json', body:JSON.stringify({cuilHabilitado:state.cuilHabilitado})});
+        return;
+      }
+      assert.equal(request.method(), 'POST');
       const payload = request.postDataJSON();
-      requests.push({route: url.pathname, payload});
+      const encoded = request.headers()['x-datta-client'];
+      const entrada = encoded ? JSON.parse(decodeURIComponent(encoded)).entrada : undefined;
+      requests.push({route:url.pathname, payload, entrada});
       assert.match(payload.requestId, UUID);
       assert.equal(Object.hasOwn(payload, 'turnstileToken'), false);
       assert.equal(Object.hasOwn(payload, 'sexo'), false);
@@ -102,7 +125,7 @@ async function simpleForm(page) {
       if (url.pathname === '/api/cuil') response = state.cuil;
       if (url.pathname === '/api/prestadores' && state.current) response = {status: 200, body: state.current};
       if (response.wait) await response.wait;
-      await route.fulfill({status: response.status, contentType: 'application/json', body: JSON.stringify(response.body)});
+      await route.fulfill({status: response.status, headers:cors, contentType: 'application/json', body: JSON.stringify(response.body)});
       return;
     }
     if (url.pathname === '/otros-servicios/imei/data/config.json') {
@@ -144,9 +167,18 @@ async function simpleForm(page) {
   console.log('OK navegador: prestador solicitado, móvil y limpieza del actual');
 
   await page.setViewportSize({width: 1280, height: 1000});
+  const statusReceived = page.waitForResponse(response => response.url() === cuilApi && response.request().method() === 'GET');
   await page.goto(base + '/otros-servicios/cuil/index.html');
+  await statusReceived;
   await simpleForm(page);
-  assert.equal(await page.getByLabel('Número de DNI (propio)').count(), 1);
+  const cuilInput = page.locator('#dqCuilValue');
+  const cuilButton = page.locator('#dqCuilForm button[type=submit]');
+  assert.ok(await cuilInput.isDisabled());
+  assert.ok(await cuilButton.isDisabled());
+  await page.getByText('Consulta CUIL pendiente de habilitación', {exact:false}).first().waitFor();
+  const initialCount = requests.length;
+  await page.locator('#dqCuilForm').evaluate(form => form.requestSubmit());
+  assert.equal(requests.length, initialCount);
   assert.equal(await page.locator('#dqValue').getAttribute('aria-describedby'), 'dqDniHelp dqResult');
   assert.equal(await page.locator('#dqResult').getAttribute('role'), 'status');
   assert.equal(await page.locator('#dqResult').getAttribute('aria-live'), 'polite');
@@ -175,13 +207,33 @@ async function simpleForm(page) {
   await page.setViewportSize({width: 1280, height: 1000});
   assert.equal(await page.locator('#dqValue').getAttribute('aria-invalid'), 'false');
   assert.equal(await page.locator('#dqForm').getAttribute('aria-busy'), 'false');
-  assert(requests.some(item => item.route === '/api/cuil' && item.payload.dni === '12345678'));
-  state.cuil.body = {verificado: true, tipoClave: 'CUIL', dni: '12345678', cuil: '20123456786'};
+  assert(requests.some(item => item.route === '/api/cuil' && item.payload.dni === '12345678' && item.payload.tipoClave === 'CUIT' && item.entrada === '12345678'));
+  state.cuilHabilitado = true;
+  await page.reload();
+  await page.waitForFunction(() => !document.getElementById('dqCuilValue').disabled);
+  assert.ok(await cuilButton.isEnabled());
   await submit(page, '12345678');
-  await page.waitForFunction(() => document.getElementById('dqResult').textContent.includes('CUIL confirmado'));
-  assert.deepEqual(await rows(page), [['CUIL: ', '20-12345678-6'], ['DNI: ', '12345678']]);
+  await visibleResult(page, 'success');
+  const cuitResult = await page.locator('#dqResult').textContent();
+  await submit(page, 'a987', 'dqCuilForm');
+  await visibleResult(page, 'error', 'dqCuilResult');
+  assert.equal(await page.locator('#dqResult').textContent(), cuitResult);
+  state.cuil.body = {verificado:true, tipoClave:'CUIL', dni:'12345679', cuil:'20123456794'};
+  await submit(page, '12.345.679', 'dqCuilForm');
+  await visibleResult(page, 'success', 'dqCuilResult');
+  assert.deepEqual(await rows(page,'#dqCuilResult'), [['CUIL: ', '20-12345679-4'], ['DNI: ', '12345679']]);
+  assert(requests.some(item => item.route === '/api/cuil' && item.payload.dni === '12345679' && item.payload.tipoClave === 'CUIL' && item.entrada === '12.345.679'));
+  assert.equal(await page.locator('#dqResult').textContent(), cuitResult);
+  state.cuil.body = {verificado:true, tipoClave:'CUIT', dni:'12345679', cuit:'20123456794'};
+  await submit(page, '12345679', 'dqCuilForm');
+  await visibleResult(page, 'error', 'dqCuilResult');
+  assert.deepEqual(await rows(page,'#dqCuilResult'), []);
+  assert.equal(await page.locator('#dqResult').textContent(), cuitResult);
+  assert.ok(events.some(event => event.service === 'cuil' && event.detail?.entrada === 'a987'));
+
   const validCuit = {verificado: true, tipoClave: 'CUIT', dni: '12345678', cuit: '20123456786'};
   for (const invalid of [
+    {verificado:true, tipoClave:'CUIL', dni:'12345678', cuil:'20123456786'},
     {...validCuit, verificado: false}, {...validCuit, dni: '12345679'},
     {...validCuit, cuit: '20123456794'}, {...validCuit, cuit: '20123456780'},
     {...validCuit, cuit: '30123456781'}, {...validCuit, tipoClave: 'CDI'},
@@ -201,9 +253,11 @@ async function simpleForm(page) {
   assert.equal(await page.locator('#dqForm button[type=submit]').isDisabled(), true);
   assert.equal(await page.locator('#dqForm button[type=submit]').textContent(), 'Consultando…');
   await page.locator('#dqForm').evaluate(form => form.dispatchEvent(new Event('submit', {bubbles: true, cancelable: true})));
-  assert.equal(requests.length, before + 1, 'El segundo envío no genera otra consulta');
+  await page.locator('#dqCuilForm').evaluate(form => form.requestSubmit());
+  assert.equal(requests.length, before + 1, 'Ninguno de los formularios duplica una consulta en curso');
   releaseCuil();
   await visibleResult(page, 'success');
+  assert.equal(requests.length, before + 1);
   assert.equal(await page.locator('#dqForm button[type=submit]').isDisabled(), false);
   assert.equal(await page.locator('#dqForm').getAttribute('aria-busy'), 'false');
   state.cuil = {status: 404, body: {error: 'clave_no_encontrada'}};
@@ -242,7 +296,7 @@ async function simpleForm(page) {
   assert.equal(requests.length, before, 'Sin configuración no se finge una consulta');
   await simpleForm(page);
   state.configured = true;
-  console.log('OK navegador: un botón de consulta, CUIL y CUIT verificados, ausencias y errores sin enlaces');
+  console.log('OK navegador: formularios de CUIT y CUIL independientes, ausencias y errores sin enlaces');
 
   // La prueba del formulario DNRPA vigente se ejecuta en test_dnrpa_browser.mjs.
   await page.goto(base + '/otros-servicios/imei/index.html');
