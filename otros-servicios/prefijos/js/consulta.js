@@ -26,6 +26,7 @@
 
   form.addEventListener('submit', async event => {
     event.preventDefault();
+    window.DattaRegistro?.event('prefijos','consulta');
     if (!areas) {
       try { await load(); } catch (error) {
         DattaUtil.result('dqResult', 'Consulta no disponible', 'No se pudieron cargar los prefijos. Intentá nuevamente.', 'error');

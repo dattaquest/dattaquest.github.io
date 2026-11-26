@@ -370,13 +370,15 @@ async function test(name, callback) { await callback(); passed++; console.log('O
     }
   });
 
-  await test('formularios sin sexo, CAPTCHA ni derivación externa; errores de cupo honestos', async () => {
+  await test('formularios actuales de CUIL y DNRPA y errores de cupo', async () => {
     for (const [module, value] of [['cuil', '12345678'], ['radicacion', 'AB123CD']]) {
       const html = fs.readFileSync(path.join(root, 'otros-servicios', module, 'index.html'), 'utf8');
       const form = html.match(/<form\b[^>]*id="dqForm"[\s\S]*?<\/form>/)[0];
-      assert.equal((form.match(/<input\b/g) || []).length, 1);
+      assert.equal((form.match(/<input\b/g) || []).length, module === 'radicacion' ? 2 : 1);
       assert.equal((form.match(/<button\b[^>]*type="submit"/g) || []).length, 1);
-      assert.doesNotMatch(form, /<select\b|captcha|sexo|código verificador/i);
+      assert.doesNotMatch(form, /<select\b|sexo/i);
+      if (module === 'radicacion') assert.match(form, /id="dqVerifier"/);
+      else assert.doesNotMatch(form, /captcha|código verificador/i);
       assert.doesNotMatch(html, /href="https?:\/\/[^\"]*(?:anses|dnrpa|constancia-cuil|radicacion-vehiculo)/i);
       const h = harness(module);
       await h.submit(value);

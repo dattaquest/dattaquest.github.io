@@ -52,9 +52,11 @@
     current.classList.remove('is-visible');
     const numero = DattaUtil.normalizePhone(document.getElementById('dqValue').value);
     if (!/^\d{10}$/.test(numero)) {
+      window.DattaRegistro?.event('prestadores','invalida');
       DattaUtil.result('dqResult', 'Número inválido', 'Ingresá 10 dígitos nacionales, sin el 0 ni el 15.', 'error');
       return;
     }
+    window.DattaRegistro?.event('prestadores','consulta');
     const button = form.querySelector('button[type=submit]');
     button.disabled = true;
     DattaUtil.result('dqResult', 'Consultando numeración', 'Buscando el prestador original...', 'info');

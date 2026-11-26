@@ -34,6 +34,7 @@
     event.preventDefault();
     const imei = DattaUtil.onlyDigits(document.getElementById('dqValue').value);
     if (!/^\d{15}$/.test(imei)) {
+      window.DattaRegistro?.event('imei','invalida');
       DattaUtil.result(resultId, 'IMEI no válido', 'El IMEI debe contener exactamente 15 dígitos.', 'error');
       return;
     }
@@ -47,9 +48,11 @@
       sum += digit;
     }
     if (sum % 10 !== 0) {
+      window.DattaRegistro?.event('imei','invalida');
       DattaUtil.result(resultId, 'Error de control', 'El IMEI no supera la verificación de su dígito de control.', 'error');
       return;
     }
+    window.DattaRegistro?.event('imei','consulta');
     const button = form.querySelector('button[type=submit]');
     button.disabled = true;
     DattaUtil.result(resultId, 'Consultando IMEI', 'Buscando marca y modelo...', 'info');

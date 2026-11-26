@@ -96,7 +96,7 @@
  <div class="dq-grid"><section class="dq-panel dq-native-panel" aria-labelledby="tituloFormulario"><h2 id="tituloFormulario">Buscar radicación de patente</h2>
  <form id="dqForm" aria-busy="false" novalidate>
  <div class="dq-rad-fields">
-  <div><label for="dqValue" class="dq-field">Dominio / patente del vehículo</label><input class="dq-input" id="dqValue" type="text" autocapitalize="characters" autocomplete="off" placeholder="Ej.: ABC123 o A123BCD" maxlength="11" aria-describedby="dqPatenteHelp" required><p class="dq-help" id="dqPatenteHelp">Patentes de autos y motos: ABC123, AB123CD, 123ABC y A123BCD.</p></div>
+  <div><label for="dqValue" class="dq-field">Dominio / patente del vehículo</label><input class="dq-input" id="dqValue" type="text" autocapitalize="characters" autocomplete="off" placeholder="Ej.: ABC123 o A123BCD" maxlength="11" aria-describedby="dqPatenteHelp dqResult" required><p class="dq-help" id="dqPatenteHelp">Patentes de autos y motos: ABC123, AB123CD, 123ABC y A123BCD.</p></div>
   <div class="dq-verification"><label for="dqVerifier" class="dq-field">Código verificador</label><div class="dq-captcha-line"><div class="dq-captcha-display"><img id="dqCaptcha" alt="Código de verificación oficial de DNRPA" hidden><span id="dqCaptchaStatus" role="status">Cargando…</span></div><button id="dqRefreshCaptcha" class="dq-btn dq-btn-secondary dq-refresh-captcha" type="button" title="Solicitar otro código" aria-label="Actualizar código verificador">↻</button></div><input id="dqVerifier" class="dq-input" type="text" inputmode="numeric" autocomplete="off" maxlength="5" placeholder="Escribí el código" required><p class="dq-help">Copiá los cinco dígitos de la imagen oficial.</p></div>
  </div>
  <div class="dq-actions"><button class="dq-btn" type="submit" disabled>Consultar patente</button></div>
@@ -108,6 +108,7 @@
 <a class="dq-service-link" href="../cuil/index.html"><span>Consulta de CUIL</span><small>Servicio gratuito</small></a>
 <a class="dq-service-link" href="../radicacion/index.html" aria-current="page"><span>Radicación de patente</span><small>Estás acá</small></a>
 <a class="dq-service-link" href="../imei/index.html"><span>Verificador de IMEI</span><small>Servicio gratuito</small></a></div></section>
+ <p class="dq-source">Registramos el uso de este servicio para estadísticas y seguridad. <a href="../../Acerca.html#registro-consultas">Datos del registro</a></p>
  <footer class="dq-footer">© DattaQuest Argentina · Servicio gratuito · <a href="../../Contacto.html">Contacto</a> · <a href="../../index.html">Volver al inicio</a></footer>
 </main>
 <script src="../../index_files/jquery.min.js.descarga"></script>
@@ -116,6 +117,7 @@
 <script src="../../index_files/nav-dropdown.js.descarga"></script>
 <script src="../../index_files/navbar-dropdown.js.descarga"></script>
 <script defer src="../comun/nav.js?v=2"></script>
+<script src="../comun/registro.js?v=1"></script>
 <script src="../comun/base.js"></script>
 <script src="./js/dnrpa-config.js"></script>
 <script src="./js/dnrpa.js"></script>

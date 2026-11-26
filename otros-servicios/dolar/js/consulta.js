@@ -40,6 +40,7 @@
     });
   }
   async function load(force) {
+    window.DattaRegistro?.event('dolar', force ? 'actualizacion' : 'apertura');
     button.disabled = true;
     updated.textContent = 'Consultando...';
     if (!force) {

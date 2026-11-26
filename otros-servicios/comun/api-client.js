@@ -29,7 +29,7 @@
      const requestId=crypto.randomUUID();
      const controller=new AbortController();timeout=setTimeout(()=>controller.abort(),25000);
      const res=await fetch(endpoint(route),{method:'POST',mode:'cors',credentials:'omit',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',
-       headers:{'Content-Type':'application/json','Accept':'application/json'},
+       headers:{'Content-Type':'application/json','Accept':'application/json', ...window.DattaRegistro?.headers(endpoint(route))},
        body:JSON.stringify({...payload,requestId}),signal:controller.signal});
      let out;
      try {out=await res.json();}catch(e){throw fail('respuesta_no_verificada',502);}

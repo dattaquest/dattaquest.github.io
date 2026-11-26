@@ -376,7 +376,7 @@
                 <div class="formSectionInner round8">
 
                     <div class="formContainer round6">
-                        <form method="get" action="./RealizarPago2.html" <input type="hidden" name="entity_type"
+                        <form data-dq-servicio="guia" data-dq-accion="pedido" method="get" action="./RealizarPago2.html" <input type="hidden" name="entity_type"
                             value="PHONE">
                             <input type="hidden" name="country" value="argentina">
                             <input type="hidden" name="source" value="dateas-v2">
@@ -419,7 +419,8 @@
                             </div>
 
                             <div class="clr"></div>
-                        </form>
+                        <p><small>Registramos el uso de este servicio para estadísticas y seguridad. <a href="./Acerca.html#registro-consultas">Datos del registro</a></small></p>
+</form>
                         <div id="loadingForm" class="loadingForm" style="display: none;">&nbsp;</div>
                     </div>
                 </div> <button onmousedown="sonido.play()" id="btn-abrir-modal"> <strong>EJEMPLO DE INFORME<strong>
@@ -528,6 +529,7 @@
     </section>
 
 <script defer src="./otros-servicios/comun/nav.js?v=2"></script>
+<script src="./otros-servicios/comun/registro.js?v=1"></script>
 </body>
 
 <script>

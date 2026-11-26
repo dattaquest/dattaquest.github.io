@@ -46,6 +46,7 @@
     const input = inputElement.value.trim();
     const dni = /^[0-9 .]+$/.test(input) ? input.replace(/[ .]/g, '') : '';
     if (!/^\d{7,8}$/.test(dni) || /^0+$/.test(dni)) {
+      window.DattaRegistro?.event('cuil','invalida');
       inputElement.setAttribute('aria-invalid', 'true');
       DattaUtil.result('dqResult', 'DNI no válido', 'Ingresá un DNI de 7 u 8 dígitos.', 'error');
       return;

@@ -24,9 +24,10 @@ test('radicación carga su configuración antes del cliente y conserva el endpoi
   const html = fs.readFileSync(new URL('../otros-servicios/radicacion/index.html', 'file://' + __filename), 'utf8');
   const config = fs.readFileSync(new URL('../otros-servicios/radicacion/js/config.js', 'file://' + __filename), 'utf8');
   const cuilConfig = fs.readFileSync(new URL('../otros-servicios/cuil/js/config.js', 'file://' + __filename), 'utf8');
-  assert(html.indexOf('../comun/api-config.js') >= 0);
-  assert(html.indexOf('../comun/api-config.js') < html.indexOf('./js/config.js'));
-  assert(html.indexOf('./js/config.js') < html.indexOf('../comun/api-client.js'));
+  const registro = html.indexOf('../comun/registro.js');
+  const nativeConfig = html.indexOf('./js/dnrpa-config.js');
+  assert(registro >= 0 && nativeConfig > registro && html.indexOf('./js/dnrpa.js') > nativeConfig);
+  // El adaptador anterior sigue disponible por separado.
   const context = vm.createContext({Object, URL, location: {hostname: 'dattaquest.github.io'},
     DATTA_API_BASE: 'https://antiguo.example/api'});
   context.window = context;

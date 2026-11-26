@@ -25,7 +25,7 @@ async function request(path,body){
  try{url=new URL(root);if(url.protocol!=='https:'||url.username||url.password||url.search||url.hash)throw Error();}catch{throw fail('proveedor_sin_configurar');}
  const controller=new AbortController(), timer=setTimeout(()=>controller.abort(),25000);
  try{
-  const r=await fetch(root+path,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(body),credentials:'omit',redirect:'error',cache:'no-store',referrerPolicy:'no-referrer',signal:controller.signal});
+  const r=await fetch(root+path,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json',...(path === '/consultar' ? window.DattaRegistro?.headers(root+path) : {})},body:JSON.stringify(body),credentials:'omit',redirect:'error',cache:'no-store',referrerPolicy:'no-referrer',signal:controller.signal});
   const data=await r.json();if(!r.ok)throw fail(messages[data?.error]?data.error:'fuente_no_disponible');return data;
  }catch(e){throw e.code?e:fail('fuente_no_disponible');}finally{clearTimeout(timer);}
 }
@@ -42,12 +42,12 @@ refresh.addEventListener('click',()=>load());
 form.addEventListener('submit',async e=>{
  e.preventDefault();if(busy)return;
  const value=plate.value.trim().toUpperCase().replace(/[ .-]/g,'');
- if(!validPlate.test(value)){plate.setAttribute('aria-invalid','true');showError(fail('dato_invalido'));return;}
+ if(!validPlate.test(value)){window.DattaRegistro?.event('radicacion','invalida');plate.setAttribute('aria-invalid','true');showError(fail('dato_invalido'));return;}
  plate.setAttribute('aria-invalid','false');
  const manual=code.value.trim();
- if(!/^\d{5}$/.test(manual)){code.setAttribute('aria-invalid','true');DattaUtil.result('dqResult','Código verificador incompleto','Ingresá los cinco dígitos que ves en la imagen.','error');return;}
+ if(!/^\d{5}$/.test(manual)){window.DattaRegistro?.event('radicacion','invalida');code.setAttribute('aria-invalid','true');DattaUtil.result('dqResult','Código verificador incompleto','Ingresá los cinco dígitos que ves en la imagen.','error');return;}
  code.setAttribute('aria-invalid','false');
- if(!session){showError(fail('sesion_vencida'));return;}
+ if(!session){window.DattaRegistro?.event('radicacion','invalida');showError(fail('sesion_vencida'));return;}
  const id=session;clearChallenge('Código utilizado');lock(true);button.textContent='Consultando…';
  DattaUtil.result('dqResult','Consultando radicación','Buscando el registro en DNRPA…','info');
  try{

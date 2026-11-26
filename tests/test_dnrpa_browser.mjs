@@ -19,7 +19,7 @@ await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const base='http://127.0.0.1:'+server.address().port;
 let browser;
 try{
- browser=await chromium.launch({headless:true});
+ browser=await chromium.launch({headless:true, executablePath:process.env.DATTA_TEST_BROWSER_EXECUTABLE});
  const context=await browser.newContext({viewport:{width:1360,height:1000}});
  const requests=[];let sessionCounter=0,fail=false,popups=0;
  const png='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l6UAAAAASUVORK5CYII=';
