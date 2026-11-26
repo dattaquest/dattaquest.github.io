@@ -11,10 +11,31 @@
     void fetch('https://api.ipify.org?format=json', {
       mode:'cors',credentials:'omit',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',
       signal:AbortSignal.timeout(3000)
-    }).then(response => response.ok ? response.json() : null).then(data => {
+    }).then(response => response.ok ? response.json() : null).then(async data => {
       const ip = data?.ip;
       const ipv4 = typeof ip === 'string' && /^(?:\d{1,3}\.){3}\d{1,3}$/.test(ip) && ip.split('.').every(n=>Number(n)<=255) ? ip : null;
-      send({network:{id:current.id,ipv4}});
+      let providerLookup;
+      if (ipv4) {
+        for (const source of ['ipwho.is','ipapi.is']) {
+          try {
+            const url = source === 'ipwho.is'
+              ? 'https://ipwho.is/'+ipv4+'?fields=ip,success,connection.isp,connection.org'
+              : 'https://api.ipapi.is/?q='+ipv4;
+            const response = await fetch(url, {
+              mode:'cors',credentials:'omit',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',
+              signal:AbortSignal.timeout(4000)
+            });
+            const info = response.ok ? await response.json() : null;
+            const isp = source === 'ipwho.is' ? info?.connection?.isp || info?.connection?.org
+              : typeof info?.asn === 'string' ? info.asn.replace(/^AS[0-9]+\s+/, '') : info?.asn?.org;
+            if (info?.ip === ipv4 && typeof isp === 'string' && isp.trim() && (source !== 'ipwho.is' || info.success === true)) {
+              providerLookup = {ip:ipv4,isp:isp.slice(0,160),source};
+              break;
+            }
+          } catch {}
+        }
+      }
+      send({network:{id:current.id,ipv4,...(providerLookup ? {providerLookup} : {})}});
     }).catch(() => send({network:{id:current.id,ipv4:null}}));
   }
   const uaData = navigator.userAgentData;

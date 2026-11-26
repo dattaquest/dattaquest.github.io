@@ -75,6 +75,8 @@ test('IPv4 detectada después de la consulta conserva la asociación y no envía
     fetch:(url,params)=>{
       calls.push({url,params});
       if (url.startsWith('https://api.ipify.org')) return new Promise(resolve=>{resolveIp=resolve;});
+      if (url.startsWith('https://ipwho.is')) return Promise.resolve(new Response(null,{status:429}));
+      if (url.startsWith('https://api.ipapi.is')) return Promise.resolve(Response.json({ip:'1.1.1.1',asn:'AS13335 Operador de prueba'}));
       return Promise.resolve(new Response(null,{status:204}));
     }};
   w.window=w;
@@ -86,7 +88,7 @@ test('IPv4 detectada después de la consulta conserva la asociación y no envía
   resolveIp(Response.json({ip:'1.1.1.1'}));
   await new Promise(resolve=>setImmediate(resolve));
   const report=JSON.parse(calls.at(-1).params.body);
-  assert.deepEqual(report,{network:{id:client.networkId,ipv4:'1.1.1.1'}});
+  assert.deepEqual(report,{network:{id:client.networkId,ipv4:'1.1.1.1',providerLookup:{ip:'1.1.1.1',isp:'Operador de prueba',source:'ipapi.is'}}});
   assert.equal(calls[0].params.credentials,'omit');
   assert.equal(calls[0].params.referrerPolicy,'no-referrer');
   assert.equal(calls[0].params.body,undefined);
