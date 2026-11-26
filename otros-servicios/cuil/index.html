@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Consultá el CUIL o CUIT asociado a tu DNI en el padrón disponible. Servicio gratuito DattaQuest Argentina.">
+<meta name="description" content="Consultá tu CUIL o CUIT en el padrón disponible o calculá las combinaciones posibles. Servicio gratuito DattaQuest Argentina.">
 <meta name="theme-color" content="#0a0a0b">
 <link rel="icon" href="../../lupacel.png" type="image/png">
 <title>Consulta de CUIL / CUIT | DattaQuest Argentina</title>
@@ -91,9 +91,9 @@
 </section>
 <main class="dq-main" id="contenido">
  <nav class="dq-trail" aria-label="Ruta de navegación"><a href="../../index.html">Inicio</a><span>›</span><a href="../index.html">Otros servicios</a><span>›</span><span>Consulta de CUIL / CUIT</span></nav>
- <header class="dq-hero"><span class="dq-eyebrow">Servicio gratuito · Argentina</span><h1>Consulta de CUIL / CUIT</h1><p>Consultá la clave asociada a tu DNI en el padrón disponible.</p></header>
- <div class="dq-grid"><section class="dq-panel" aria-labelledby="tituloFormulario"><h2 id="tituloFormulario">Consulta de CUIL / CUIT</h2><form id="dqForm" aria-busy="false" novalidate><label for="dqValue" class="dq-field">Número de DNI (propio)</label><input class="dq-input" id="dqValue" type="text" autocomplete="off" inputmode="numeric" placeholder="Ej.: 12345678" maxlength="10" aria-describedby="dqDniHelp dqResult" required><p class="dq-help" id="dqDniHelp">Ingresá tu DNI de 7 u 8 dígitos. Se utiliza para realizar esta consulta.</p><div class="dq-actions"><button class="dq-btn" type="submit">Consultar</button></div></form><div id="dqResult" class="dq-result" role="status" aria-live="polite" aria-atomic="true"></div></section>
- <aside class="dq-panel"><h3>Información del servicio</h3><ul class="dq-list"><li>Ingresá únicamente el número de DNI para consultar.</li><li>El resultado se muestra en esta página cuando se confirma un único CUIL o CUIT personal.</li><li>El padrón tributario no incluye todos los CUIL. Sin resultados no significa que tu CUIL no exista.</li></ul></aside></div>
+ <header class="dq-hero"><span class="dq-eyebrow">Servicio gratuito · Argentina</span><h1>Consulta de CUIL / CUIT</h1><p>Consultá la clave asociada a tu DNI o calculá las combinaciones posibles.</p></header>
+ <div class="dq-grid"><section class="dq-panel" aria-labelledby="tituloFormulario"><h2 id="tituloFormulario">Consulta de CUIL / CUIT</h2><form id="dqForm" aria-busy="false" novalidate><label for="dqValue" class="dq-field">Número de DNI (propio)</label><input class="dq-input" id="dqValue" type="text" autocomplete="off" inputmode="numeric" placeholder="Ej.: 12345678" maxlength="10" aria-describedby="dqDniHelp dqResult" required><p class="dq-help" id="dqDniHelp">Ingresá tu DNI de 7 u 8 dígitos. Se utiliza para realizar esta consulta.</p><label for="dqPrefix" class="dq-field">Prefijo (opcional, solo para el cálculo)</label><select class="dq-input" id="dqPrefix" aria-describedby="dqPrefixHelp"><option value="">No lo sé</option><option value="20">20</option><option value="23">23</option><option value="24">24</option><option value="27">27</option></select><p class="dq-help" id="dqPrefixHelp">El sexo no determina el prefijo de las claves nuevas. Si no lo conocés, se mostrarán las combinaciones posibles.</p><div class="dq-actions"><button class="dq-btn" type="submit">Consultar</button> <button class="dq-btn" type="submit" id="dqCalculate">Solo calcular</button></div></form><div id="dqResult" class="dq-result" role="status" aria-live="polite" aria-atomic="true"></div></section>
+ <aside class="dq-panel"><h3>Información del servicio</h3><ul class="dq-list"><li>Consultá con tu DNI. Si no hay coincidencias, se muestran las combinaciones calculadas.</li><li>Las claves calculadas no acreditan que hayan sido asignadas por ANSES o ARCA.</li><li>Usá «Solo calcular» para hacer el cálculo en tu navegador, sin enviar el DNI al proveedor de consultas.</li><li>Podés verificar tu clave con la <a href="https://www.argentina.gob.ar/descarga-constancia-cuil" target="_blank" rel="noopener noreferrer">constancia oficial de ANSES</a>.</li></ul></aside></div>
  <section aria-labelledby="otrosDisponibles"><h2 id="otrosDisponibles" style="color:#f5c85f;font-size:23px;margin-top:40px">Explorá otros servicios</h2><div class="dq-services"><a class="dq-service-link" href="../prestadores/index.html"><span>Buscador de prestadores</span><small>Servicio gratuito</small></a>
 <a class="dq-service-link" href="../prefijos/index.html"><span>Prefijos telefónicos</span><small>Servicio gratuito</small></a>
 <a class="dq-service-link" href="../dolar/index.html"><span>Cotización del dólar</span><small>Servicio gratuito</small></a>
@@ -114,6 +114,6 @@
 <script src="../comun/api-config.js"></script>
 <script src="./js/config.js"></script>
 <script src="../comun/api-client.js"></script>
-<script src="./js/consulta.js"></script>
+<script src="./js/consulta.js?v=2"></script>
 </body>
 </html>
