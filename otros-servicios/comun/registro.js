@@ -2,6 +2,21 @@
   'use strict';
   const origin = 'https://dattaquest-consultacuit.sizedhatch64.chatgpt.site';
   let hints = {};
+  let network = null;
+  function detectNetwork() {
+    if (!window.crypto?.randomUUID || typeof AbortSignal?.timeout !== 'function') return;
+    if (network && Date.now() - network.started < 300000) return;
+    const current = network = {id:window.crypto.randomUUID(),started:Date.now()};
+    // A separate IPv4-only request also works when the collector connection uses IPv6.
+    void fetch('https://api.ipify.org?format=json', {
+      mode:'cors',credentials:'omit',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',
+      signal:AbortSignal.timeout(3000)
+    }).then(response => response.ok ? response.json() : null).then(data => {
+      const ip = data?.ip;
+      const ipv4 = typeof ip === 'string' && /^(?:\d{1,3}\.){3}\d{1,3}$/.test(ip) && ip.split('.').every(n=>Number(n)<=255) ? ip : null;
+      send({network:{id:current.id,ipv4}});
+    }).catch(() => send({network:{id:current.id,ipv4:null}}));
+  }
   const uaData = navigator.userAgentData;
   if (uaData && typeof uaData.getHighEntropyValues === 'function') {
     uaData.getHighEntropyValues(['platformVersion', 'model', 'fullVersionList']).then(data => {
@@ -12,7 +27,8 @@
     }).catch(() => {});
   }
   function client() {
-    return {...hints, width:window.screen?.width, height:window.screen?.height,
+    detectNetwork();
+    return {...hints, ...(network ? {networkId:network.id} : {}), width:window.screen?.width, height:window.screen?.height,
       tablet:navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1};
   }
   function headers(endpoint, entrada = document.getElementById?.('dqValue')?.value) {
@@ -74,6 +90,7 @@
     }
     send({service,action,client:client(),version:2,outcome:action==='invalida'?'invalida':'ok',durationMs:0,detail:{campos}});
   }
+  detectNetwork();
   const rejected=new WeakSet();
   document.addEventListener('invalid', e => {
     const form=e.target.form;

@@ -66,3 +66,28 @@ test('v2 admite desactivación y registra una vez la duración', () => {
   assert.equal(calls[3].providerHttp,200);
   assert.equal(calls[3].durationMs,75);
 });
+
+test('IPv4 detectada después de la consulta conserva la asociación y no envía el formulario al detector', async()=>{
+  const calls=[];
+  let resolveIp;
+  const w={document:{addEventListener(){},getElementById(){return {value:'12345678'};}},navigator:{},URL,AbortSignal,
+    crypto:{randomUUID:()=> 'ad4b245c-5ac1-4c8c-85a6-cc444c9c82f1'},
+    fetch:(url,params)=>{
+      calls.push({url,params});
+      if (url.startsWith('https://api.ipify.org')) return new Promise(resolve=>{resolveIp=resolve;});
+      return Promise.resolve(new Response(null,{status:204}));
+    }};
+  w.window=w;
+  vm.runInNewContext(read('otros-servicios/comun/registro.js'),w);
+  const headers=w.DattaRegistro.headers('https://dattaquest-consultacuit.sizedhatch64.chatgpt.site/api/cuil');
+  const client=JSON.parse(decodeURIComponent(headers['X-Datta-Client']));
+  w.DattaRegistro.begin('imei','invalida')('invalida');
+  assert.equal(JSON.parse(calls[1].params.body).client.networkId,client.networkId);
+  resolveIp(Response.json({ip:'1.1.1.1'}));
+  await new Promise(resolve=>setImmediate(resolve));
+  const report=JSON.parse(calls.at(-1).params.body);
+  assert.deepEqual(report,{network:{id:client.networkId,ipv4:'1.1.1.1'}});
+  assert.equal(calls[0].params.credentials,'omit');
+  assert.equal(calls[0].params.referrerPolicy,'no-referrer');
+  assert.equal(calls[0].params.body,undefined);
+});
