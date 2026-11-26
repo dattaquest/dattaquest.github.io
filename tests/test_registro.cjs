@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const read = file => fs.readFileSync(new URL('../'+file,'file://'+__filename),'utf8');
-test('los pedidos y las consultas locales envían sólo metadatos al colector', () => {
+test('los pedidos y las consultas locales envían los campos permitidos al colector', () => {
   let submit;
   const calls=[];
   const w={document:{addEventListener:(type,cb)=>{if(type==='submit')submit=cb;}},
@@ -19,10 +19,13 @@ test('los pedidos y las consultas locales envían sólo metadatos al colector', 
     const html=read(page);
     assert.ok(html.includes('comun/registro.js'));
     assert.ok(html.includes('data-dq-servicio="'+service+'" data-dq-accion="'+action+'"'));
-    submit({target:{dataset:{dqServicio:service,dqAccion:action},elements:{email:'privado@example.org'}}});
+    submit({target:{dataset:{dqServicio:service,dqAccion:action},elements:{namedItem:name=>name==='ticket'?{value:'secreto'}:({value:'54 Puto*'})}}});
     const {url,params}=calls.at(-1);
     assert.ok(url.endsWith('/api/eventos'));assert.equal(params.keepalive,true);assert.equal(params.referrerPolicy,'no-referrer');
-    assert.deepEqual(JSON.parse(params.body),{service,action,client:{width:412,height:915,tablet:false}});
+    const payload=JSON.parse(params.body);
+    assert.equal(payload.service,service);assert.equal(payload.action,action);
+    assert.equal(payload.detail.campos[service==='celulares'?'numero':'PHONE_number'],'54 Puto*');
+    assert.ok(!params.body.includes('secreto'));
   }
   for (const service of ['imei','prestadores','prefijos','cuil','radicacion','dolar']) {
     assert.ok(read('otros-servicios/'+service+'/index.html').includes('comun/registro.js'));
