@@ -114,7 +114,7 @@
 
   async function checkCuilAvailability() {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 6000);
+    const timer = setTimeout(() => controller.abort(), 25000);
     const input = document.getElementById('dqCuilValue');
     const button = document.getElementById('dqCuilForm').querySelector('button[type=submit]');
     try {
