@@ -1,1 +1,21 @@
-/* Estilos exclusivos de esta herramienta. Personalizá acá sin afectar al resto del sitio. */
+.dq-cuil-tarjeta {
+  margin-top: 24px;
+  border-top: 1px solid #494032;
+}
+.dq-cuil-tarjeta input[type="file"] {
+  max-width: 100%;
+  color: var(--dq-muted);
+  font-size: 14px;
+}
+.dq-cuil-tarjeta input::file-selector-button {
+  margin-right: 8px;
+  padding: 8px 12px;
+  border: 1px solid #897348;
+  border-radius: 6px;
+  background: #252017;
+  color: #f6d88e;
+  cursor: pointer;
+}
+.dq-result-action + .dq-result-action {
+  margin-inline-start: 1em;
+}
